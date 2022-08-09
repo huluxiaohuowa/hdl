@@ -1,0 +1,2 @@
+include versioneer.py
+include hdl/_version.py

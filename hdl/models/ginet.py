@@ -6,13 +6,13 @@ import torch.nn.functional as F
 # from torch_geometric.utils import add_self_loops
 from torch_geometric.nn import global_add_pool, global_mean_pool, global_max_pool
 
-from xdl.layers.graph.gin import GINEConv
-from xdl.layers.general.linear import (
+from hdl.layers.graph.gin import GINEConv
+from hdl.layers.general.linear import (
     # BNReLULinear,
     BNReLULinearBlock,
 )
-from xdl.models.utils import load_model
-from xdl.ops.utils import get_activation
+from hdl.models.utils import load_model
+from hdl.ops.utils import get_activation
 
 
 __all__ = [

@@ -4,13 +4,13 @@ import torch
 from rdkit import Chem
 # import torch.utils.data as tud
 
-from xdl.data.dataset.base_dataset import CSVDataset
-from xdl.features.fp.features_generators import (
+from hdl.data.dataset.base_dataset import CSVDataset
+from hdl.features.fp.features_generators import (
     get_features_generator,
     get_available_features_generators,
     FP_BITS_DICT 
 )
-from xdl.features.fp.rxn import get_rxnrep_fingerprint
+from hdl.features.fp.rxn import get_rxnrep_fingerprint
 
 
 class RXNFPDataset(CSVDataset):

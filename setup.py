@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import versioneer
 
 setup(
-    name="xdl",
+    name="hdl",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     author="Jianxing Hu",

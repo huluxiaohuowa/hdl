@@ -11,10 +11,10 @@ import pandas as pd
 
 # from jupyfuncs.glob import makedirs
 from jupyfuncs.pbar import tnrange, tqdm
-# from xdl.data.dataset.graph.gin import MoleculeDataset
-from xdl.data.dataset.graph.gin import MoleculeDatasetWrapper
-# from xdl.metric_loss.loss import get_lossfunc
-# from xdl.models.utils import save_model
+# from hdl.data.dataset.graph.gin import MoleculeDataset
+from hdl.data.dataset.graph.gin import MoleculeDatasetWrapper
+# from hdl.metric_loss.loss import get_lossfunc
+# from hdl.models.utils import save_model
 from .trainer_base import TorchTrainer
 
 

@@ -3,7 +3,7 @@ from random import Random
 from collections import defaultdict
 from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold
-from xdl.data.dataset.graph.chiral import MolDataset
+from hdl.data.dataset.graph.chiral import MolDataset
 
 
 def split_data(

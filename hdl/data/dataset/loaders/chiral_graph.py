@@ -4,9 +4,9 @@ import pandas as pd
 import numpy as np
 from torch_geometric.loader import DataLoader
 
-from xdl.data.dataset.graph.chiral import MolDataset
-from xdl.data.dataset.samplers.chiral import StereoSampler 
-from xdl.data.dataset.loaders.spliter import split_data
+from hdl.data.dataset.graph.chiral import MolDataset
+from hdl.data.dataset.samplers.chiral import StereoSampler 
+from hdl.data.dataset.loaders.spliter import split_data
 
 
 def get_chiralgraph_loader(

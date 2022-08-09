@@ -3,11 +3,11 @@ from transformers import BertModel
 import torch
 # from torch import nn
 
-from xdl.layers.general.linear import (
+from hdl.layers.general.linear import (
     MultiTaskMultiClassBlock,
     MuMcHardBlock
 )
-# from xdl.data.seq.rxn import rxn_model
+# from hdl.data.seq.rxn import rxn_model
 
 
 def get_rxn_model(

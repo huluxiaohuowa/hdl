@@ -8,18 +8,18 @@ import torch
 from torch import nn
 # import pandas as pd
 
-from xdl.models.utils import load_model, save_model
-from xdl.models.model_dict import MODEL_DICT
-from xdl.models.optim_dict import OPTIM_DICT
-# from xdl.models.linear import MMIterLinear
-from xdl.features.fp.features_generators import FP_BITS_DICT 
-from xdl.data.dataset.fp.fp_dataset import FPDataset
-from xdl.data.dataset.loaders.general import Loader
+from hdl.models.utils import load_model, save_model
+from hdl.models.model_dict import MODEL_DICT
+from hdl.models.optim_dict import OPTIM_DICT
+# from hdl.models.linear import MMIterLinear
+from hdl.features.fp.features_generators import FP_BITS_DICT 
+from hdl.data.dataset.fp.fp_dataset import FPDataset
+from hdl.data.dataset.loaders.general import Loader
 from jupyfuncs.pbar import tnrange, tqdm
 from jupyfuncs.glob import makedirs
 from jupyfuncs.tensor import get_valid_indices
-from xdl.metric_loss.loss import mtmc_loss
-from xdl.controllers.train.trainer_base import IterativeTrainer
+from hdl.metric_loss.loss import mtmc_loss
+from hdl.controllers.train.trainer_base import IterativeTrainer
 
 
 class MMIterTrainer(IterativeTrainer):

@@ -6,7 +6,7 @@ from torch._C import dtype
 import torch_geometric as tg
 from torch_geometric.data import Dataset 
 
-from xdl.features.graph.featurization import MolGraph
+from hdl.features.graph.featurization import MolGraph
 
 
 class MolDataset(Dataset):

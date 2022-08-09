@@ -2,7 +2,7 @@ import typing as t
 
 import torch.utils.data as tud
 
-from xdl.data.dataset.loaders.collate_funcs.fp import fp_collate
+from hdl.data.dataset.loaders.collate_funcs.fp import fp_collate
 
 
 class Loader(tud.DataLoader):

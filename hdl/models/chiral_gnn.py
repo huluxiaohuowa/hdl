@@ -3,14 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torch_geometric.nn import global_add_pool, global_mean_pool, global_max_pool, GlobalAttention, Set2Set
-from xdl.layers.graph.chiral_graph import (
+from hdl.layers.graph.chiral_graph import (
     GCNConv,
     GINEConv,
     DMPNNConv,
     # get_tetra_update,
 )
 
-from xdl.layers.graph.tetra import (
+from hdl.layers.graph.tetra import (
     # get_tetra_update,
     TETRA_UPDATE_DICT
 )

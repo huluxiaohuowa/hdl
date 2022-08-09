@@ -6,11 +6,11 @@ from torch.utils.tensorboard import SummaryWriter
 
 from jupyfuncs.glob import makedirs
 
-from xdl.models.optim_dict import OPTIM_DICT
-from xdl.models.model_dict import MODEL_DICT
-from xdl.models.utils import save_model, load_model
-from xdl.metric_loss.loss import get_lossfunc
-from xdl.metric_loss.metric import get_metric
+from hdl.models.optim_dict import OPTIM_DICT
+from hdl.models.model_dict import MODEL_DICT
+from hdl.models.utils import save_model, load_model
+from hdl.metric_loss.loss import get_lossfunc
+from hdl.metric_loss.metric import get_metric
 
 
 class TorchTrainer(ABC):

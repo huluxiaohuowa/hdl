@@ -5,11 +5,11 @@ from torch import nn
 from torch.nn import functional as nnfunc
 import numpy as np
 
-from xdl.layers.general.linear import (
+from hdl.layers.general.linear import (
     BNReLULinearBlock,
     BNReLULinear
 )
-# from xdl.ops.utils import get_activation
+# from hdl.ops.utils import get_activation
 
 
 class MMIterLinear(nn.Module):

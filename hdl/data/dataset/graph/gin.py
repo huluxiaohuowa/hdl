@@ -24,7 +24,7 @@ from rdkit import Chem
 from rdkit.Chem.rdchem import BondType as BT
 # from rdkit.Chem import AllChem
 
-from xdl.data.dataset.utils import read_smiles
+from hdl.data.dataset.utils import read_smiles
 
 
 __all__ = [

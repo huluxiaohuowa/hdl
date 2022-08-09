@@ -4,7 +4,7 @@ from torch.optim import (
     SGD,
     RMSprop,
 )
-from xdl.optims.nadam import Nadam
+from hdl.optims.nadam import Nadam
 
 
 OPTIM_DICT = {

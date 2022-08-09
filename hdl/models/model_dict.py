@@ -1,4 +1,4 @@
-from xdl.layers.general.linear import (
+from hdl.layers.general.linear import (
     MultiTaskMultiClassBlock,
     MuMcHardBlock
 )

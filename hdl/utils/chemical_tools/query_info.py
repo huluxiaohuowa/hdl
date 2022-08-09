@@ -6,7 +6,7 @@ import pubchempy as pcp
 import molvs as mv
 from psycopg import sql
 
-from xdl.utils.database_tools.connect import connect_by_infofile
+from hdl.utils.database_tools.connect import connect_by_infofile
 
 
 def query_from_cir(query_name: str):

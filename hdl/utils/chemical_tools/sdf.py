@@ -1,4 +1,5 @@
 from rdkit import Chem
+import pandas as pd
 
 
 def sdf2df(

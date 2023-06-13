@@ -22,6 +22,37 @@ label_trans_dict = {
 }
 
 
+class DFDataset(tud.Dataset):
+    def __init__(
+        self,
+        df: pd.DataFrame, 
+        smiles_col: str = 'smiles',
+        target_cols: str = 'y',
+        num_classes: t.List[int] = [],
+        target_transform: t.Union[str, t.List[str]] = None,
+        **kwargs
+    ) -> None:
+        self.df = rm_index(df)
+        self.smiles_col = smiles_col
+        self.target_cols = target_cols
+        self.num_classes = num_classes
+        if target_transform is not None:
+            if not num_classes:
+                self.num_classes = [1 for _ in range(len(target_cols))]
+            else:
+                assert len(self.num_classes) == len(target_cols)
+            if isinstance(target_transform, str):
+                self.target_transform = [label_trans_dict[target_transform]] * \
+                    len(self.num_classes)
+            elif isinstance(target_transform, t.Iterable):
+                self.target_transform = [
+                    label_trans_dict[target_trans]
+                    for target_trans in target_transform
+                ]
+        else:
+            self.target_transform = None
+
+
 class CSVDataset(tud.Dataset):
     def __init__(
         self,
@@ -57,7 +88,7 @@ class CSVDataset(tud.Dataset):
                     label_trans_dict[target_trans]
                     for target_trans in target_transform
                 ]
-        else:,
+        else:
             self.target_transform = None
     
     def __getitem__(self, index):

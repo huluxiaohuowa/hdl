@@ -4,7 +4,7 @@ import torch
 from rdkit import Chem
 # import torch.utils.data as tud
 
-from hdl.data.dataset.base_dataset import CSVDataset
+from hdl.data.dataset.base_dataset import CSVDataset, CSVRDataset
 from hdl.features.fp.features_generators import (
     get_features_generator,
     get_available_features_generators,
@@ -110,3 +110,43 @@ class FPDataset(CSVDataset):
                 return fingerprint_list, target_tensors, final_targets 
         else:
             return fingerprint_list
+
+
+class FPRDataset(CSVRDataset):
+    def __init__(
+        self,
+        csv_file: str,
+        splitter: str,
+        smiles_col: str,
+        target_col: str = None,
+        missing_label: str = None,
+        target_transform: t.Union[str, t.List[str]] = None,
+        fp_type: str = 'morgan_count',
+        **kwargs
+    ) -> None:
+        super().__init__(
+            csv_file,
+            splitter=splitter,
+            smiles_col=smiles_col,
+            target_col=target_col,
+            target_transform=target_transform,
+            missing_label=missing_label,
+            **kwargs
+        )
+        assert fp_type in get_available_features_generators()
+        self.fp_type = fp_type
+        self.fp_generator = get_features_generator(self.fp_type)
+        self.fp_numbits = FP_BITS_DICT[self.fp_type]
+        self.missing_label = missing_label
+    
+    def __getitem__(self, index):
+        smiles = self.df.loc[index][self.smiles_col]
+
+        fp = torch.LongTensor(self.fp_generator(Chem.MolFromSmiles(smiles))),
+
+        if self.target_col is not None: 
+            target = self.df.loc[index][self.target_col]
+            target = (target, )
+            return fp, target
+        else:
+            return fp 

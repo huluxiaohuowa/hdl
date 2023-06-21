@@ -5,7 +5,7 @@ def get_num_lines(file):
     num_lines = subprocess.check_output(
         ['wc', '-l', file]
     ).split()[0]
-    return num_lines
+    return int(num_lines)
 
 
 def str_from_line(file, line, split=False):

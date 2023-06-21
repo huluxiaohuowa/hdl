@@ -141,8 +141,10 @@ class FPRDataset(CSVRDataset):
     
     def __getitem__(self, index):
         smiles = self.df.loc[index][self.smiles_col]
-
-        fp = torch.LongTensor(self.fp_generator(Chem.MolFromSmiles(smiles))),
+        try:
+            fp = torch.LongTensor(self.fp_generator(Chem.MolFromSmiles(smiles)))
+        except Exception as _:
+            fp = torch.zeros(self.fp_numbits).long()
 
         if self.target_col is not None: 
             target = self.df.loc[index][self.target_col]

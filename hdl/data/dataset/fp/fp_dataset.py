@@ -10,39 +10,7 @@ from hdl.features.fp.features_generators import (
     get_available_features_generators,
     FP_BITS_DICT 
 )
-from hdl.features.fp.rxn import get_rxnrep_fingerprint
-
-
-class RXNFPDataset(CSVDataset):
-    def __init__(
-        self,
-        csv_file: str,
-        splitter: str = ',',
-        smiles_col: str = 'SMILES',
-        reactant_cols: t.List[str] = [],
-        product_cols: t.List[str] = [],
-        target_cols: t.List[str] = [],
-        condition_cols: t.List[str] = [],
-        num_classes: t.List[int] = 1,
-        target_transform: t.Union[str, t.List[str]] = None,
-        **kwargs
-    ) -> None:
-        super().__init__(
-            csv_file, 
-            splitter,
-            smiles_col,
-            target_cols,
-            num_classes,
-            target_transform,
-            **kwargs
-        )
-        self.condition_cols = condition_cols
-    
-    def __getitem__(self, index):
-        smiles = self.df.loc[index][self.smiles_col]
-        fp = get_rxnrep_fingerprint([smiles])
-        target = self.df.loc[index][self.target_cols]
-        return fp, target
+# from hdl.features.fp.rxn import get_rxnrep_fingerprint
 
 
 class FPDataset(CSVDataset):

@@ -1,23 +1,39 @@
 from setuptools import setup, find_packages
-import versioneer
+import setuptools_scm
+
+
+def custom_version_scheme(version):
+    """自定义版本号方案，确保没有 .dev 后缀"""
+    if version.exact:
+        return version.format_with("{tag}")
+    elif version.distance:
+        return f"{version.format_next_version()}.post{version.distance}"
+    else:
+        return version.format_with("0.0.0")
+
+def custom_local_scheme(version):
+    """自定义本地版本方案，确保没有本地版本后缀"""
+    return ""
 
 setup(
-    name="hdl",
-    version=versioneer.get_version(),
-    cmdclass=versioneer.get_cmdclass(),
+    name="hjxdl",
+    use_scm_version={
+        "version_scheme": custom_version_scheme,
+        "local_scheme": custom_local_scheme,
+        "write_to": "hdl/_version.py"
+    },
     author="Jianxing Hu",
-    author_email="jianxing.hu@xtalpi.com",
-    description="DL framework from Jianxing",
-    url="", 
-    packages=find_packages(), 
-    python_requires='>=3',
-    data_files=[
-        (
-            'data_file', 
-            [
-                'hdl/features/vocab.txt'
-            ]
-        ),
+    author_email="j.hu@pku.edu.cn",
+    description="A collection of functions for Jupyter notebooks",
+    long_description=open('README.md', 'r', encoding='utf-8').read(),
+    long_description_content_type='text/markdown',
+    url="https://github.com/huluxiaohuowa/hdl",
+    packages=find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
     ],
-    include_package_data=True
+    python_requires='>=3.6',
+    setup_requires=['setuptools_scm']
 )

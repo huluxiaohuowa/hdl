@@ -1,6 +1,10 @@
 # DL framework by Jianxing
 
 ```bash
-git clone git@github.com:huluxiaohuowa/hdl.git
-python setup.py install
+pip install hdxdl
+```
+
+```python
+import hdl
+print(hdl.version)
 ```

@@ -1,6 +1,14 @@
 from setuptools import setup, find_packages
 import setuptools_scm
 
+def read_requirements():
+    """读取 requirements.txt 文件并返回依赖列表"""
+    with open('requirements.txt', 'r', encoding='utf-8') as file:
+        return [
+            line.strip()
+            for line in file
+            if line.strip() and not line.startswith('#')
+        ]
 
 def custom_version_scheme(version):
     """自定义版本号方案，确保没有 .dev 后缀"""
@@ -35,5 +43,6 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    setup_requires=['setuptools_scm']
+    setup_requires=['setuptools_scm'],
+    install_requires=read_requirements()
 )

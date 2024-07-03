@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 import setuptools_scm
 
+
 def read_requirements():
     """读取 requirements.txt 文件并返回依赖列表"""
     with open('requirements.txt', 'r', encoding='utf-8') as file:
@@ -9,6 +10,7 @@ def read_requirements():
             for line in file
             if line.strip() and not line.startswith('#')
         ]
+
 
 def custom_version_scheme(version):
     """自定义版本号方案，确保没有 .dev 后缀"""
@@ -19,9 +21,11 @@ def custom_version_scheme(version):
     else:
         return version.format_with("0.0.0")
 
+
 def custom_local_scheme(version):
     """自定义本地版本方案，确保没有本地版本后缀"""
     return ""
+
 
 setup(
     name="hjxdl",

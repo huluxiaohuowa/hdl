@@ -42,7 +42,8 @@ class GGUF_M():
                 model_path=model_path,
                 n_threads=self.generation_kwargs['num_threads'],
                 n_ctx=self.generation_kwargs['max_context_length'],
-                n_gpu_layers=-1
+                n_gpu_layers=-1,
+                flash_attn=True
             )
             
         print("完成本地模型的加载")

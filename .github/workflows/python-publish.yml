@@ -2,8 +2,8 @@ name: Build and Publish to PyPI
 
 on:
   push:
-    branches:
-      - main # 确保这匹配你的主分支名
+    tags:
+      - '*'  # 监听所有标签推送
 
 jobs:
   build-and-publish:
@@ -22,15 +22,38 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools wheel
-          pip install build  # 确保在构建前安装 build 模块
+          pip install setuptools wheel build
 
-      - name: Build package
+      - name: Build package and wheel
         run: |
-          python -m build
-
+          python -m build --wheel
+      
+      - name: Find wheel file
+        run: echo "WHEEL_FILE=$(basename $(ls ./dist/*.whl))" >> $GITHUB_ENV
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@v1.4.2
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Create GitHub Release
+        id: create_release  # 这里添加 id 以便于引用输出
+        uses: actions/create-release@v1.1.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: "Description of the release"
+          draft: false
+          prerelease: false
+  
+      - name: Upload wheel to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/${{ env.WHEEL_FILE }}
+          asset_name: ${{ env.WHEEL_FILE }}
+          asset_content_type: application/octet-stream

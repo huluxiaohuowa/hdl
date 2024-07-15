@@ -1,0 +1,37 @@
+from FlagEmbedding import BGEM3FlagModel
+
+
+def sim(
+    sentences_1: str = "",
+    sentences_2: str = "",
+    emb_dir: str = "/data/models/bge-m3",
+):
+    """Calculate similarity between two sentences using BGEM3 model.
+    
+    Args:
+        sentences_1 (str): First sentence to compare.
+        sentences_2 (str): Second sentence to compare.
+        emb_dir (str): Directory containing the BGEM3 model.
+    
+    Returns:
+        float: Similarity score between the two sentences.
+    """
+    model = BGEM3FlagModel(
+        emb_dir,  
+        use_fp16=True
+    )
+    
+    output_1 = model.encode(
+        sentences_1,
+        return_dense=True,
+        return_sparse=True,
+        return_colbert_vecs=False
+    )
+    output_2 = model.encode(
+        sentences_2,
+        return_dense=True,
+        return_sparse=True,
+        return_colbert_vecs=False
+    )
+    similarity = output_1['dense_vecs'] @ output_2['dense_vecs'].T
+    return similarity.item()

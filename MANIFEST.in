@@ -1,7 +1,5 @@
 include hdl/_version.py
-include hdl/datasets/*.json
 include hdl/datasets/*.txt
-include hdl/datasets/*.tsv
 include hdl/datasets/*.pkl
 include hdl/datasets/*.ckpt
 include hdl/datasets/*.pth

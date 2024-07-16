@@ -157,7 +157,7 @@ class HFEmbedder():
         """
         if isinstance(sentences, str):
             sentences = [sentences]
-        if kwargs.get("convert_to_tensor") is True:
+        if kwargs.get("convert_to_tensor", False) is True:
             kwargs["device"] = self.device    
         output = self.model.encode(
             sentences,

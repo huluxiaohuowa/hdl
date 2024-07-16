@@ -1,4 +1,4 @@
-class FlagEmbedder():
+class HFEmbedder():
     def __init__(
         self,
         emb_name: str = "bge",
@@ -41,6 +41,8 @@ class FlagEmbedder():
             Returns:
                 numpy.ndarray: Encoded representation of the input sentences.
         """
+        if isinstance(sentences, str):
+            sentences = [sentences]
         output = self.model.encode(
             sentences,
             return_dense=True,
@@ -68,4 +70,4 @@ class FlagEmbedder():
         output_1 = self.encode(sentences_1)
         output_2 = self.encode(sentences_2)
         similarity = output_1 @ output_2.T
-        return similarity.item()
+        return similarity

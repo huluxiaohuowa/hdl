@@ -1,10 +1,9 @@
 include hdl/_version.py
-include jupyfuncs/_version.py
-include jupyfuncs/datasets/*.json
-include jupyfuncs/datasets/*.txt
-include jupyfuncs/datasets/*.tsv
-include jupyfuncs/datasets/*.pkl
-include jupyfuncs/datasets/*.ckpt
-include jupyfuncs/datasets/*.pth
-include jupyfuncs/datasets/*.npz
+include hdl/datasets/*.json
+include hdl/datasets/*.txt
+include hdl/datasets/*.tsv
+include hdl/datasets/*.pkl
+include hdl/datasets/*.ckpt
+include hdl/datasets/*.pth
+include hdl/datasets/*.npz
 

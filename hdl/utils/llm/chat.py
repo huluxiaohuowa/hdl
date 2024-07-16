@@ -18,6 +18,20 @@ class GGUF_M(Llama):
         *args,
         **kwargs
     ):
+        """Initialize the model with the specified parameters.
+        
+        Args:
+            model_path (str): The path to the model.
+            device (str, optional): The device to use, either 'gpu' or 'cpu'. Defaults to 'gpu'.
+            generation_kwargs (dict, optional): Additional generation keyword arguments. Defaults to {}.
+            server_ip (str, optional): The IP address of the server. Defaults to "127.0.0.1".
+            server_port (int, optional): The port of the server. Defaults to 8000.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        
+        Raises:
+            KeyError: If 'num_threads' or 'max_context_length' is missing in generation_kwargs.
+        """
         print("正在从本地加载模型...")
         if device.lower() == 'cpu': 
             super().__init__(

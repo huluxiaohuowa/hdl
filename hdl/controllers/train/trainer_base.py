@@ -4,7 +4,7 @@ from os import path as osp
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from jupyfuncs.glob import makedirs
+from jupyfuncs.path.glob import makedirs
 
 from hdl.models.optim_dict import OPTIM_DICT
 from hdl.models.model_dict import MODEL_DICT

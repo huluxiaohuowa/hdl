@@ -19,7 +19,7 @@ try:
 except ImportError:
     Chem = None
 
-from jupyfuncs.pbar import tqdm
+from jupyfuncs.show.pbar import tqdm
 
 
 x_map = {

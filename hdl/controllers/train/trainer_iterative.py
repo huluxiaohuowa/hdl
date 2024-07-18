@@ -15,9 +15,9 @@ from hdl.models.optim_dict import OPTIM_DICT
 from hdl.features.fp.features_generators import FP_BITS_DICT 
 from hdl.data.dataset.fp.fp_dataset import FPDataset
 from hdl.data.dataset.loaders.general import Loader
-from jupyfuncs.pbar import tnrange, tqdm
-from jupyfuncs.glob import makedirs
-from jupyfuncs.tensor import get_valid_indices
+from jupyfuncs.show.pbar import tnrange, tqdm
+from jupyfuncs.path.glob import makedirs
+from jupyfuncs.dl.tensor import get_valid_indices
 from hdl.metric_loss.loss import mtmc_loss
 from hdl.controllers.train.trainer_base import IterativeTrainer
 

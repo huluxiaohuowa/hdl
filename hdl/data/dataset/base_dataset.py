@@ -4,8 +4,8 @@ import typing as t
 import torch.utils.data as tud
 import pandas as pd
 
-from jupyfuncs.dataframe import rm_index
-from jupyfuncs.tensor import (
+from jupyfuncs.dl.dataframe import rm_index
+from jupyfuncs.dl.tensor import (
     label_to_onehot,
     label_to_tensor
 )

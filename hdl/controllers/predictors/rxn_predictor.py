@@ -7,7 +7,7 @@ import numpy as np
 from .torch_predictor import TorchPredictor
 from hdl.data.dataset.seq.rxn_dataset import RXNCSVDataset
 from hdl.data.dataset.loaders.rxn_loader import RXNLoader
-from jupyfuncs.pbar import tqdm
+from jupyfuncs.show.pbar import tqdm
 from hdl.models.rxn import build_rxn_mu
 from hdl.models.utils import load_model
 

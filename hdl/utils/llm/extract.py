@@ -3,6 +3,7 @@ import pytesseract
 from PIL import Image
 import pandas as pd
 import io
+import ltp
 from spire.doc import Document
 from spire.doc.common import *
 
@@ -10,9 +11,19 @@ from spire.doc.common import *
 class DocExtractor():
     def __init__(
         self,
+        ltp_model_path: str = None,
         lang: str = "chi_sim"
     ) -> None:
+        self.ltp_model_path = ltp_model_path
         self.lang = lang
+
+        self.split = None
+        if self.ltp_model_path is not None:
+            from ltp import StnSplit, LTP
+            ltp  = LTP(ltp_model)
+            self.split = StnSplit()
+            # sents = self.split.split(text)
+        
 
     @classmethod
     def text_from_doc(

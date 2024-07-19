@@ -3,7 +3,6 @@ import pytesseract
 from PIL import Image
 import pandas as pd
 import io
-import ltp
 from spire.doc import Document
 from spire.doc.common import *
 

@@ -10,10 +10,8 @@ from spire.doc.common import *
 class DocExtractor():
     def __init__(
         self,
-        doc_files: list,
         lang: str = "chi_sim"
     ) -> None:
-        self.doc_files = doc_files
         self.lang = lang
 
     @classmethod

@@ -13,13 +13,22 @@ class DocExtractor():
         ltp_model_path: str = None,
         lang: str = "chi_sim"
     ) -> None:
+        """Initialize the object with the specified LTP model path and language.
+        
+        Args:
+            ltp_model_path (str): The file path to the LTP model. Default is None.
+            lang (str): The language to be used for processing. Default is "chi_sim".
+        
+        Returns:
+            None
+        """
         self.ltp_model_path = ltp_model_path
         self.lang = lang
 
         self.split = None
         if self.ltp_model_path is not None:
             from ltp import StnSplit, LTP
-            ltp  = LTP(ltp_model)
+            ltp  = LTP(self.ltp_model_path)
             self.split = StnSplit()
             # sents = self.split.split(text)
         
@@ -38,6 +47,14 @@ class DocExtractor():
     def text_from_plain(
         txt_path
     ):
+        """Reads and returns the text content from a plain text file.
+        
+            Args:
+                txt_path (str): The path to the plain text file.
+        
+            Returns:
+                str: The text content read from the file.
+        """
         with open(txt_path, "r") as f:
             text = f.read()
         return text
@@ -46,13 +63,29 @@ class DocExtractor():
     def extract_text_from_image(
         image: Image.Image,
     ) -> str:
+        """Extracts text from the given image using pytesseract.
+        
+        Args:
+            image (PIL.Image.Image): The input image from which text needs to be extracted.
+        
+        Returns:
+            str: The extracted text from the image.
+        """
         return pytesseract.image_to_string(image, lang=self.lang)
 
     @staticmethod
     def is_within_bbox(
         bbox1, bbox2
     ):
-        """Check if bbox1 is within bbox2."""
+        """Check if bbox1 is within bbox2.
+        
+        Args:
+            bbox1 (list): List of 4 integers representing the bounding box coordinates [x_min, y_min, x_max, y_max].
+            bbox2 (list): List of 4 integers representing the bounding box coordinates [x_min, y_min, x_max, y_max].
+        
+        Returns:
+            bool: True if bbox1 is within bbox2, False otherwise.
+        """
         return bbox1[0] >= bbox2[0] and bbox1[1] >= bbox2[1] and bbox1[2] <= bbox2[2] and bbox1[3] <= bbox2[3]
 
     def text_tables_from_pdf(
@@ -60,6 +93,15 @@ class DocExtractor():
         pdf_path,
         table_from_pic: bool = False
     ):
+        """Extract text and tables from a PDF file.
+        
+        Args:
+            pdf_path (str): Path to the PDF file.
+            table_from_pic (bool, optional): Whether to extract tables from images in the PDF. Defaults to False.
+        
+        Returns:
+            tuple: A tuple containing a list of extracted texts and a list of extracted tables as DataFrames.
+        """
         all_tables = []
         all_texts = []
         with pdfplumber.open(pdf_path) as pdf:

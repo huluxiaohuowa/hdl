@@ -29,7 +29,7 @@ class DocExtractor():
         if self.ltp_model_path is not None:
             from ltp import StnSplit, LTP
             ltp  = LTP(self.ltp_model_path)
-            self.split = StnSplit()
+            self.split = StnSplit().split
             # sents = self.split.split(text)
         
 

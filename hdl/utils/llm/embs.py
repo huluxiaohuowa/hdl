@@ -1,4 +1,4 @@
-from sentence_transformers import SentenceTransformer
+import re
 
 
 class BEEmbedder():
@@ -118,6 +118,8 @@ class HFEmbedder():
         Returns:
             None
         """
+
+        from sentence_transformers import SentenceTransformer
         
         self.device = device
         self.emb_dir = emb_dir
@@ -190,7 +192,7 @@ class HFEmbedder():
 
 def get_n_tokens(
     paragraph,
-    model: str = None
+    model: str = ""
 ):
     """Get the number of tokens in a paragraph using a specified model.
     
@@ -201,7 +203,7 @@ def get_n_tokens(
     Returns:
         int: The number of tokens in the paragraph based on the specified model or default CJK tokenization.
     """
-    if model is None:
+    if model == "":
         cjk_regex = re.compile(u'[\u1100-\uFFFDh]+?')
         trimed_cjk = cjk_regex.sub( ' a ', paragraph, 0)
         return len(trimed_cjk.split())

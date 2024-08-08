@@ -186,3 +186,27 @@ class HFEmbedder():
         output_2 = self.encode(sentences_2, *args, **kwargs)
         similarity = output_1 @ output_2.T
         return similarity
+
+
+def get_n_tokens(
+    paragraph,
+    model: str = None
+):
+    """Get the number of tokens in a paragraph using a specified model.
+    
+    Args:
+        paragraph (str): The input paragraph to tokenize.
+        model (str): The name of the model to use for tokenization. If None, a default CJK tokenization will be used.
+    
+    Returns:
+        int: The number of tokens in the paragraph based on the specified model or default CJK tokenization.
+    """
+    if model is None:
+        cjk_regex = re.compile(u'[\u1100-\uFFFDh]+?')
+        trimed_cjk = cjk_regex.sub( ' a ', paragraph, 0)
+        return len(trimed_cjk.split())
+    else:
+        import tiktoken
+        encoding = tiktoken.encoding_for_model(model)
+        num_tokens = len(encoding.encode(paragraph))
+        return num_tokens

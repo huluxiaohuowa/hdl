@@ -350,7 +350,7 @@ class OpenAI_M():
         self.model_path = model_path
         self.server_ip = server_ip
         self.server_port = server_port
-        self.base_url = "http://{self.server_ip}:{str(self.server_port)}/v1"
+        self.base_url = f"http://{self.server_ip}:{str(self.server_port)}/v1"
         self.api_key = api_key
         self.client = OpenAI(
             base_url=self.base_url,

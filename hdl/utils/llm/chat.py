@@ -364,6 +364,7 @@ class OpenAI_M():
         prompt : str,
         stop: list[str] | None = ["USER:", "ASSISTANT:"],
         # history: list = [],
+        model="default_model",
         **kwargs: t.Any,
     ) -> str:
         """Invoke the chatbot with the given prompt and return the response.
@@ -383,6 +384,7 @@ class OpenAI_M():
                 "content": prompt
             }],
             stream=False,
+            model=model,
             # model=kwargs.get("model", "default_model")
             **kwargs
         )
@@ -393,6 +395,7 @@ class OpenAI_M():
         prompt : str,
         stop: list[str] | None = ["USER:", "ASSISTANT:"],
         # history: list = [],
+        model="default_model",
         **kwargs: t.Any,
     ):
         """Generate text completion in a streaming fashion.
@@ -412,6 +415,7 @@ class OpenAI_M():
                 "content": prompt
             }],
             stream=True,
+            model=model,
             # model=kwargs.get("model", "default_model")
             **kwargs
         )

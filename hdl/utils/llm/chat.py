@@ -327,14 +327,25 @@ class OpenAI_M():
         *args,
         **kwargs
     ):
-        """Initialize the class with the specified parameters.
+        """Initialize the OpenAI client.
         
         Args:
-            model_path (str, optional): Path to the model file. Defaults to None.
-            device (str, optional): Device to run the model on. Defaults to 'gpu'.
-            generation_kwargs (dict, optional): Additional keyword arguments for model generation. Defaults to {}.
-            server_ip (str, optional): IP address of the server. Defaults to "172.28.1.2".
-            server_port (int, optional): Port number of the server. Defaults to 8000.
+            model_path (str): Path to the model file. Defaults to "default_model".
+            device (str): Device to use for model inference. Defaults to 'gpu'.
+            generation_kwargs (dict): Additional keyword arguments for model generation. Defaults to {}.
+            server_ip (str): IP address of the server. Defaults to "172.28.1.2".
+            server_port (int): Port number of the server. Defaults to 8000.
+            api_key (str): API key for authentication. Defaults to "dummy_key".
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        
+        Attributes:
+            model_path (str): Path to the model file.
+            server_ip (str): IP address of the server.
+            server_port (int): Port number of the server.
+            base_url (str): Base URL for API requests.
+            api_key (str): API key for authentication.
+            client (OpenAI): OpenAI client for making API requests.
         """
         self.model_path = model_path
         self.server_ip = server_ip

@@ -1,0 +1,113 @@
+
+[
+    {
+        "mol_id": {
+            "id_type": "CAS",
+            "id_value": "111-222-333",
+            "smiles": "",
+            "routes": [
+                {   
+                    "rxn_template": "",
+                    "rxn_type": "",
+                    "yield": 0.0,
+                    "children": [
+                        {
+                            "mol_id": {
+                                "id_type": "CAS",
+                                "id_value": "111-222-333",
+                                "smiles": "",
+                                "routes": []
+                            }
+                        },
+                        {
+                            "mol_id": {
+                                "id_type": "CAS",
+                                "id_value": "111-222-333",
+                                "smiles": "",
+                                "routes": []
+                            }
+                        }
+                    ]
+                },
+                {   
+                    "rxn_template": "",
+                    "rxn_type": "",
+                    "yield": 0.0,
+                    "children": [
+                        {
+                            "mol_id": {
+                                "id_type": "CAS",
+                                "id_value": "111-222-333",
+                                "smiles": "",
+                                "routes": []
+                            }
+                        },
+                        {
+                            "mol_id": {
+                                "id_type": "CAS",
+                                "id_value": "111-222-333",
+                                "smiles": "",
+                                "routes": []
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "mol_id": {
+            "id_type": "CAS",
+            "id_value": "111-222-333",
+            "smiles": "",
+            "routes": [
+                {   
+                    "rxn_template": "",
+                    "rxn_type": "",
+                    "yield": 0.0,
+                    "children": [
+                        {
+                            "mol_id": {
+                                "id_type": "CAS",
+                                "id_value": "111-222-333",
+                                "smiles": "",
+                                "routes": []
+                            }
+                        },
+                        {
+                            "mol_id": {
+                                "id_type": "CAS",
+                                "id_value": "111-222-333",
+                                "smiles": "",
+                                "routes": []
+                            }
+                        }
+                    ]
+                },
+                {   
+                    "rxn_template": "",
+                    "rxn_type": "",
+                    "yield": 0.0,
+                    "children": [
+                        {
+                            "mol_id": {
+                                "id_type": "CAS",
+                                "id_value": "111-222-333",
+                                "smiles": "",
+                                "routes": []
+                            }
+                        },
+                        {
+                            "mol_id": {
+                                "id_type": "CAS",
+                                "id_value": "111-222-333",
+                                "smiles": "",
+                                "routes": []
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+]

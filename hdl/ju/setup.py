@@ -1,7 +1,6 @@
 from setuptools import setup, find_packages
 import setuptools_scm
 
-
 def read_requirements():
     """读取 requirements.txt 文件并返回依赖列表"""
     with open('requirements.txt', 'r', encoding='utf-8') as file:
@@ -21,31 +20,29 @@ def custom_version_scheme(version):
     else:
         return version.format_with("0.0.0")
 
-
 def custom_local_scheme(version):
     """自定义本地版本方案，确保没有本地版本后缀"""
     return ""
 
-
 setup(
-    name="hjxdl",
+    name="jupyfuncs",
     use_scm_version={
         "version_scheme": custom_version_scheme,
         "local_scheme": custom_local_scheme,
-        "write_to": "hdl/_version.py"
+        "write_to": "jupyfuncs/_version.py"
     },
     author="Jianxing Hu",
     author_email="j.hu@pku.edu.cn",
     description="A collection of functions for Jupyter notebooks",
     long_description=open('README.md', 'r', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
-    url="https://github.com/huluxiaohuowa/hdl",
+    url="https://github.com/huluxiaohuowa/jupyfuncs",
     packages=find_packages(),
     package_data={
-    'hdl': [
-        'datasets/*.*',
-        'datasets/*/*.*',
-    ]
+        'jupyfuncs': [
+            'datasets/*.*',
+            'datasets/*/*.*',
+        ]
     },
     classifiers=[
         "Programming Language :: Python :: 3",

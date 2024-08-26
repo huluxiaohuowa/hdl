@@ -1,1 +1,3 @@
-jupyfuncs
+beautifulsoup4
+openai
+tqdm

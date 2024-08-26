@@ -13,8 +13,8 @@ def get_city_codes():
         / "datasets" \
         / "city_code.json"
     with code_file.open() as f:
-        code = json.load(f)
-    return code
+        codes = json.load(f)
+    return codes
 
 
 def get_html(code):

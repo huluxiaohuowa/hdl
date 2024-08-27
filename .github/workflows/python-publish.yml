@@ -12,6 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          lfs: true  # 启用 LFS 支持
           fetch-depth: 0  # 确保能够获取全部历史和标签
 
       - name: Set up Python
@@ -27,9 +28,10 @@ jobs:
       - name: Build package and wheel
         run: |
           python -m build --wheel
-      
+
       - name: Find wheel file
         run: echo "WHEEL_FILE=$(basename $(ls ./dist/*.whl))" >> $GITHUB_ENV
+
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@v1.4.2
         with:
@@ -37,7 +39,7 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Create GitHub Release
-        id: create_release  # 这里添加 id 以便于引用输出
+        id: create_release
         uses: actions/create-release@v1.1.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -47,7 +49,7 @@ jobs:
           body: "Description of the release"
           draft: false
           prerelease: false
-  
+
       - name: Upload wheel to GitHub Release
         uses: actions/upload-release-asset@v1
         env:

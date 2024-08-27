@@ -4,6 +4,7 @@ include hdl/datasets/*.pkl
 include hdl/datasets/*.ckpt
 include hdl/datasets/*.pth
 include hdl/datasets/*.npz
+include hdl/datasets/*.npy
 include hdl/datasets/*.json
 include hdl/datasets/*.txt
 include hdl/datasets/*.tsv

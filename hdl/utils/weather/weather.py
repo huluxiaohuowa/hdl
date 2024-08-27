@@ -2,7 +2,11 @@ import requests
 from pathlib import Path
 import os
 import json
+
 from bs4 import BeautifulSoup
+import numpy as np
+
+from ..llm.embs import HFEmbedder
 
 
 def get_city_codes():
@@ -32,37 +36,75 @@ def get_page_data(html):
     weather_info = soup.find('div', id='7d')
     seven_weather = weather_info.find('ul')
     weather_list = seven_weather.find_all('li')
+
+    weather_str = ""
+
     for weather in weather_list:
-        print('=' * 60)
-        print(weather.find('h1').get_text())
-        print('天气状况：', weather.find('p', class_='wea').get_text())
+        # print("\n")
+        weather_str += (weather.find('h1').get_text() + "\n") # 日期
+        weather_str += ('天气状况：' + weather.find('p', class_='wea').get_text() + "\n")
         # 判断标签'p','tem'下是否有标签'span'，以此判断是否有最高温
         if weather.find('p', class_='tem').find('span'):
             temp_high = weather.find('p', class_='tem').find('span').get_text()
         else:
             temp_high = ''  # 最高温
         temp_low = weather.find('p', class_='tem').find('i').get_text()  # 最低温
-        print(f'天气温度：{temp_low}/{temp_high}')
+        weather_str += (f'天气温度：{temp_low}/{temp_high}' + "\n")
         win_list_tag = weather.find('p', class_='win').find('em').find_all('span')
         win_list = []
         for win in win_list_tag:
             win_list.append(win.get('title'))
-        print('风向：', '-'.join(win_list))
-        print('风力：', weather.find('p', class_='win').find('i').get_text())
+        weather_str += ('风向：' + '-'.join(win_list) + "\n")
+        weather_str += ('风力：' + weather.find('p', class_='win').find('i').get_text() + "\n")
+        weather_str += "\n"
+
+    return weather_str
 
 
-def main():
+def get_weather(city):
     code_dic = get_city_codes()
-    print('=' * 60)
-    print('\t' * 5, '天气预报查询系统')
-    print('=' * 60)
-    city = input("请输入您要查询的城市：")
+    city_name = city
+    weather_str = ""
+    if city not in code_dic:
+        city_name = get_standard_cityname(city)
+        weather_str += f"{city}识别为{city_name}，若识别错误，请提供更为准确的城市名\n"
+    html = get_html(code_dic[city_name])
+    result = get_page_data(html)
+    weather_str += f"\n{city}的天气信息如下：\n\n"
+    weather_str += result
+    return weather_str
+
+
+def main(city):
+    code_dic = get_city_codes()
+    city = city
     if city in code_dic:
-        html = get_html(code_dic[city]['AREAID'])
+        html = get_html(code_dic[city])
         get_page_data(html)
     else:
         print('你要查询的地方不存在')
 
 
-if __name__ == '__main__':
-    main()
+def get_standard_cityname(
+    city,
+    emb_dir: str = os.getenv(
+        'EMB_MODEL_DIR',
+        '/home/jhu/dev/models/bge-m3'
+    )
+):
+    code_dic = get_city_codes()
+    city_list = list(code_dic.keys())
+
+    city_embs = np.load(
+        Path(__file__).resolve().parent.parent.parent \
+            / "datasets" \
+            / "city_embs.npy"
+    )
+
+    emb = HFEmbedder(
+        emb_dir=emb_dir,
+    )
+    query_emb = emb.encode(city)
+    sims = city_embs @ query_emb.T
+
+    return city_list[np.argmax(sims)]

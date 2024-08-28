@@ -31,4 +31,6 @@ def get_datetime_by_cityname(city):
     city_time = datetime.now(timezone)
 
     # 返回格式化的日期时间字符串
-    return city_time.strftime('%Y年%m月%d日 %H:%M:%S')
+    time_str = city_time.strftime('%Y年%m月%d日 %H:%M:%S')
+    time_str = f"{city}现在的时间为" + time_str
+    return time_str

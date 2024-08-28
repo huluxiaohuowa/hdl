@@ -70,7 +70,7 @@ def get_weather(city):
         weather_str += f"{city}识别为{city_name}，若识别错误，请提供更为准确的城市名\n"
     html = get_html(code_dic[city_name])
     result = get_page_data(html)
-    weather_str += f"\n{city_name}({city})的天气信息如下：\n\n"
+    weather_str += f"\n{city_name}({city})的最新查到的天气信息如下：\n\n"
     weather_str += result
     return weather_str
 

@@ -367,11 +367,15 @@ class OpenAI_M():
         if func_name is None:
             return ""
         else:
-            for tool in self.tools:
-                if tool.__name__ == func_name:
-                    tool_final = tool
-            func_kwargs = decision_dict.get("params")
-            return tool_final(**func_kwargs)
+            try:
+                for tool in self.tools:
+                    if tool.__name__ == func_name:
+                        tool_final = tool
+                func_kwargs = decision_dict.get("params")
+                return tool_final(**func_kwargs)
+            except Exception as e:
+                print(e)
+                return ""
 
 
     def agent_response(

@@ -434,6 +434,18 @@ class OpenAI_M():
         prompt: str,
         **kwargs: t.Any
     ):
+        """Get decision based on the provided prompt and additional keyword arguments.
+
+        Args:
+            prompt (str): The prompt for decision making.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            dict: A dictionary containing the decision.
+
+        Example:
+            decision = get_decision("Should I buy this product?", option1="yes", option2="no")
+        """
         prompt_final = FN_TEMPLATE
         for tool in self.tools:
             prompt_final += self.tool_desc.get(tool.__name__, "")
@@ -448,6 +460,15 @@ class OpenAI_M():
         prompt: str,
         **kwargs: t.Any
     ):
+        """Get the result from a tool based on the provided prompt and keyword arguments.
+
+            Args:
+                prompt (str): The prompt to get the decision for.
+                **kwargs: Additional keyword arguments to pass to the decision function.
+
+            Returns:
+                str: The result from the selected tool based on the decision made.
+        """
         decision_dict = self.get_decision(prompt, **kwargs)
         if decision_dict.get("function_name", None) is None:
             return ""
@@ -466,7 +487,17 @@ class OpenAI_M():
         stream = True,
         **kwargs: t.Any
     ):
+        """'''Generate agent response based on the given prompt.
 
+        Args:
+            prompt (str): The prompt for which agent response is generated.
+            stream (bool, optional): Flag to determine if the response should be streamed. Defaults to True.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            str: The agent response based on the prompt.
+        '''
+        """
         decision_dict = self.get_decision(prompt, **kwargs)
         if decision_dict.get("function_name", None) is None:
             return self.stream(prompt, **kwargs)

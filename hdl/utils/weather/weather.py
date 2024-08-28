@@ -10,6 +10,11 @@ from ..llm.embs import HFEmbedder
 
 
 def get_city_codes():
+    """Get city codes from a JSON file.
+
+    Returns:
+        dict: A dictionary containing city codes.
+    """
     # with open('../../city.json', 'r', encoding='utf-8') as f:
     #     code_dic = eval(f.read())
     # return code_dic
@@ -22,6 +27,17 @@ def get_city_codes():
 
 
 def get_html(code):
+    """Get the HTML content of a weather webpage based on the provided code.
+
+    Args:
+        code (str): The code used to identify the specific weather webpage.
+
+    Returns:
+        str: The HTML content of the weather webpage.
+
+    Example:
+        html_content = get_html('101010100')
+    """
     weather_url = f'http://www.weather.com.cn/weather/{code}.shtml'
     header = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36"}
@@ -32,6 +48,14 @@ def get_html(code):
 
 
 def get_page_data(html):
+    """Get weather information for the next seven days from the provided HTML content.
+
+    Args:
+        html (str): The HTML content containing weather information.
+
+    Returns:
+        str: A formatted string with weather information for the next seven days.
+    """
     soup = BeautifulSoup(html, 'html.parser')
     weather_info = soup.find('div', id='7d')
     seven_weather = weather_info.find('ul')
@@ -62,6 +86,14 @@ def get_page_data(html):
 
 
 def get_weather(city):
+    """Get the weather information for a specific city.
+
+    Args:
+        city (str): The name of the city to get weather information for.
+
+    Returns:
+        str: A string containing the latest weather information for the specified city.
+    """
     code_dic = get_city_codes()
     city_name = city
     weather_str = ""
@@ -82,6 +114,15 @@ def get_standard_cityname(
         '/home/jhu/dev/models/bge-m3'
     )
 ):
+    """Get the standard city name based on the input city name.
+
+    Args:
+        city (str): The input city name.
+        emb_dir (str): The directory path for the embedding model (default is '/home/jhu/dev/models/bge-m3').
+
+    Returns:
+        str: The standard city name.
+    """
     code_dic = get_city_codes()
     city_list = list(code_dic.keys())
 

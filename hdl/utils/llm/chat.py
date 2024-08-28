@@ -338,9 +338,10 @@ class OpenAI_M():
             prompt_final += self.tool_desc.get(tool.__name__, "")
         prompt_final += f"\n用户的问题：\n{prompt}"
         # print(prompt_final)
-        decision_dict = self.invoke(prompt_final ,**kwargs)
-        print(decision_dict)
-        return json.loads(decision_dict)
+        decision_dict_str = self.invoke(prompt_final ,**kwargs)
+        print(decision_dict_str)
+        return decision_dict_str
+        # return json.loads(decision_dict)
 
     def get_tool_result(
         self,
@@ -356,11 +357,16 @@ class OpenAI_M():
             Returns:
                 str: The result from the selected tool based on the decision made.
         """
-        decision_dict = self.get_decision(prompt, **kwargs)
-        if decision_dict.get("function_name", None) is None:
+        decision_dict_str = self.get_decision(prompt, **kwargs)
+        try:
+            decision_dict = json.loads(decision_dict_str)
+        except Exception as e:
+            print(e)
+            return ""
+        func_name = decision_dict.get("function_name", None)
+        if func_name is None:
             return ""
         else:
-            func_name = decision_dict.get("function_name")
             for tool in self.tools:
                 if tool.__name__ == func_name:
                     tool_final = tool

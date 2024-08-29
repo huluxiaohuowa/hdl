@@ -15,6 +15,10 @@ def web_search_text(
     Returns:
         str: Text retrieved from the web search results.
     """
+    if max_results < 3:
+        max_results = 3
+    elif max_results > 5:
+        max_results = 5
     result_str = "联网搜索到的信息如下：\n"
     try:
         results = DDGS().text(

@@ -271,8 +271,8 @@ class OpenAI_M():
             str: The result from the selected tool based on the decision made.
         """
 
-        def run_tool_with_kwargs(tool, **kwargs):
-            return tool(**kwargs)
+        def run_tool_with_kwargs(tool, func_kwargs):
+            return tool(**func_kwargs)
 
         decision_dict_str = await asyncio.to_thread(self.get_decision, prompt, **kwargs)
         try:
@@ -292,7 +292,7 @@ class OpenAI_M():
 
                 loop = asyncio.get_running_loop()
                 with ProcessPoolExecutor() as pool:
-                    result = await loop.run_in_executor(pool, run_tool_with_kwargs, tool_final, **func_kwargs)
+                    result = await loop.run_in_executor(pool, run_tool_with_kwargs, tool_final, func_kwargs)
                 return result
             except Exception as e:
                 print(e)

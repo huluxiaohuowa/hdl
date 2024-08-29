@@ -43,9 +43,8 @@ def web_search_text(
                     # 删除空行
                     cleaned_text = "\n".join([line.strip() for line in text.splitlines() if line.strip()])
 
-                    print(cleaned_text)
                     result_str += cleaned_text
                     result_str += "\n"
-                    return result_str
             except Exception as e:
-                return f"{str(e)}: 未搜索（获取）到相关内容。"
+                print(f"{str(e)}: 从{result['href']}未搜索（获取）到相关内容。")
+        return result_str

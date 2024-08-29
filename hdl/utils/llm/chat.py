@@ -86,6 +86,8 @@ def chat_oai_invoke(
 
     return response.choices[0].message.content
 
+def run_tool_with_kwargs(tool, func_kwargs):
+    return tool(**func_kwargs)
 
 class OpenAI_M():
     def __init__(
@@ -235,6 +237,7 @@ class OpenAI_M():
             prompt_final += self.tool_desc.get(tool.__name__, "")
         prompt_final += f"\n用户的问题：\n{prompt}"
         decision_dict_str = self.invoke(prompt_final, **kwargs)
+        print(decision_dict_str)
         return decision_dict_str
 
     def get_tool_result(self, prompt: str, **kwargs: t.Any):
@@ -270,9 +273,6 @@ class OpenAI_M():
         Returns:
             str: The result from the selected tool based on the decision made.
         """
-
-        def run_tool_with_kwargs(tool, func_kwargs):
-            return tool(**func_kwargs)
 
         decision_dict_str = await asyncio.to_thread(self.get_decision, prompt, **kwargs)
         try:

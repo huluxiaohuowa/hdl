@@ -36,7 +36,7 @@ FN_DESC = {
 描述：在用户明确要联网查询回答他的问题时，调用此工具可以获得该问题联网搜索的相关内容
 参数：
 # query_text (str): 从用户提的问题中获取，用于在网络中搜索信息
-# max_results (int, optional): 搜索条目的最大数目，若用户指定了数目，则使用用户指定的数目，若用户提问中没有指定，则设定此值为 3 。
+# max_results (int, optional): 搜索条目的最大数目，若用户指定了数目，则使用用户指定的数目，若用户提问中没有指定，你需要在下面的json中"max_results"这一项指定为数值3。
 返回值 (str):这个城市当前所在时区的日期和时间
 需要返回的json
 {
@@ -44,7 +44,7 @@ FN_DESC = {
     "params":
         {
             "query_text": <query from user question>,
-            "max_results": <num of max results, default to 3>
+            "max_results": <num of max results, 如果用户没有要求，这一项则指定为3>
         }
 }
 

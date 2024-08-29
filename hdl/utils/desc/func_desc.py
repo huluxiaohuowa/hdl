@@ -37,7 +37,7 @@ FN_DESC = {
 参数：
 # query_text (str): 从用户提的问题中获取，用于在网络中搜索信息
 # max_results (int, optional): 搜索条目的最大数目，若用户指定了数目，则使用用户指定的数目，若用户提问中没有指定，你需要在下面的json中"max_results"这一项指定为数值3。
-返回值 (str):这个城市当前所在时区的日期和时间
+返回值 (str): 联网搜索到的信息
 需要返回的json
 {
     "function_name": "web_search_text",

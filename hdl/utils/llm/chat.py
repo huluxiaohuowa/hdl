@@ -87,6 +87,15 @@ def chat_oai_invoke(
     return response.choices[0].message.content
 
 def run_tool_with_kwargs(tool, func_kwargs):
+    """Run the specified tool with the provided keyword arguments.
+
+    Args:
+        tool (callable): The tool to be executed.
+        func_kwargs (dict): The keyword arguments to be passed to the tool.
+
+    Returns:
+        The result of executing the tool with the provided keyword arguments.
+    """
     return tool(**func_kwargs)
 
 class OpenAI_M():
@@ -231,7 +240,15 @@ class OpenAI_M():
                 return self.invoke(prompt_final, **kwargs)
 
     def get_decision(self, prompt: str, **kwargs: t.Any):
-        # 该方法与之前一致...
+        """Get decision based on the given prompt.
+
+        Args:
+            prompt (str): The prompt for decision making.
+            **kwargs: Additional keyword arguments for decision making.
+
+        Returns:
+            str: The decision dictionary string.
+        """
         prompt_final = FN_TEMPLATE
         for tool in self.tools:
             prompt_final += self.tool_desc.get(tool.__name__, "")
@@ -241,7 +258,15 @@ class OpenAI_M():
         return decision_dict_str
 
     def get_tool_result(self, prompt: str, **kwargs: t.Any):
-        # 同步方法与之前一致...
+        """Get the result of a tool based on the decision made.
+
+        Args:
+            prompt (str): The prompt to make a decision.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            str: The result of the tool.
+        """
         decision_dict_str = self.get_decision(prompt, **kwargs)
         try:
             decision_dict = json.loads(decision_dict_str)

@@ -32,7 +32,7 @@ def web_search_text(
             }
             try:
                 # 发送请求
-                response = requests.get(result['href'], headers=headers)
+                response = requests.get(result['href'], headers=headers, timeout=10)
 
                 # 检查请求状态码
                 if response.status_code == 200:

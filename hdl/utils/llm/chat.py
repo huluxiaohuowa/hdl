@@ -198,106 +198,6 @@ class OpenAI_M():
             if content:
                 yield content
 
-    def get_decision(
-        self,
-        prompt: str,
-        **kwargs: t.Any
-    ):
-        """Get decision based on the provided prompt and additional keyword arguments.
-
-        Args:
-            prompt (str): The prompt for decision making.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            dict: A dictionary containing the decision.
-
-        Example:
-            decision = get_decision("Should I buy this product?", option1="yes", option2="no")
-        """
-        prompt_final = FN_TEMPLATE
-        for tool in self.tools:
-            prompt_final += self.tool_desc.get(tool.__name__, "")
-        prompt_final += f"\n用户的问题：\n{prompt}"
-        # print(prompt_final)
-        decision_dict_str = self.invoke(prompt_final ,**kwargs)
-        print(decision_dict_str)
-        return decision_dict_str
-        # return json.loads(decision_dict)
-
-    def get_tool_result(
-        self,
-        prompt: str,
-        **kwargs: t.Any
-    ):
-        """Get the result from a tool based on the provided prompt and keyword arguments.
-
-            Args:
-                prompt (str): The prompt to get the decision for.
-                **kwargs: Additional keyword arguments to pass to the decision function.
-
-            Returns:
-                str: The result from the selected tool based on the decision made.
-        """
-        decision_dict_str = self.get_decision(prompt, **kwargs)
-        try:
-            decision_dict = json.loads(decision_dict_str)
-        except Exception as e:
-            print(e)
-            return ""
-        func_name = decision_dict.get("function_name", None)
-        if func_name is None:
-            return ""
-        else:
-            try:
-                for tool in self.tools:
-                    if tool.__name__ == func_name:
-                        tool_final = tool
-                func_kwargs = decision_dict.get("params")
-                return tool_final(**func_kwargs)
-            except Exception as e:
-                print(e)
-                return ""
-
-    async def get_tool_result_async(
-        self,
-        prompt: str,
-        **kwargs: t.Any
-    ):
-        """
-        Asynchronous version of the get_tool_result function that can run in parallel using multiprocessing.
-
-        Args:
-            prompt (str): The prompt to get the decision for.
-            **kwargs: Additional keyword arguments to pass to the decision function.
-
-        Returns:
-            str: The result from the selected tool based on the decision made.
-        """
-        decision_dict_str = await asyncio.to_thread(self.get_decision, prompt, **kwargs)
-        try:
-            decision_dict = json.loads(decision_dict_str)
-        except Exception as e:
-            print(e)
-            return ""
-        func_name = decision_dict.get("function_name", None)
-        if func_name is None:
-            return ""
-        else:
-            try:
-                for tool in self.tools:
-                    if tool.__name__ == func_name:
-                        tool_final = tool
-                func_kwargs = decision_dict.get("params")
-
-                loop = asyncio.get_running_loop()
-                with ProcessPoolExecutor() as pool:
-                    result = await loop.run_in_executor(pool, tool_final, **func_kwargs)
-                return result
-            except Exception as e:
-                print(e)
-                return ""
-
     def agent_response(
         self,
         prompt : str,
@@ -327,3 +227,73 @@ class OpenAI_M():
                 return self.stream(prompt_final, **kwargs)
             else:
                 return self.invoke(prompt_final, **kwargs)
+
+    def get_decision(self, prompt: str, **kwargs: t.Any):
+        # 该方法与之前一致...
+        prompt_final = FN_TEMPLATE
+        for tool in self.tools:
+            prompt_final += self.tool_desc.get(tool.__name__, "")
+        prompt_final += f"\n用户的问题：\n{prompt}"
+        decision_dict_str = self.invoke(prompt_final, **kwargs)
+        return decision_dict_str
+
+    def get_tool_result(self, prompt: str, **kwargs: t.Any):
+        # 同步方法与之前一致...
+        decision_dict_str = self.get_decision(prompt, **kwargs)
+        try:
+            decision_dict = json.loads(decision_dict_str)
+        except Exception as e:
+            print(e)
+            return ""
+        func_name = decision_dict.get("function_name", None)
+        if func_name is None:
+            return ""
+        else:
+            try:
+                for tool in self.tools:
+                    if tool.__name__ == func_name:
+                        tool_final = tool
+                func_kwargs = decision_dict.get("params")
+                return tool_final(**func_kwargs)
+            except Exception as e:
+                print(e)
+                return ""
+
+    async def get_tool_result_async(self, prompt: str, **kwargs: t.Any):
+        """
+        Asynchronous version of the get_tool_result function that can run in parallel using multiprocessing.
+
+        Args:
+            prompt (str): The prompt to get the decision for.
+            **kwargs: Additional keyword arguments to pass to the decision function.
+
+        Returns:
+            str: The result from the selected tool based on the decision made.
+        """
+
+        def run_tool_with_kwargs(tool, **kwargs):
+            return tool(**kwargs)
+
+        decision_dict_str = await asyncio.to_thread(self.get_decision, prompt, **kwargs)
+        try:
+            decision_dict = json.loads(decision_dict_str)
+        except Exception as e:
+            print(e)
+            return ""
+        func_name = decision_dict.get("function_name", None)
+        if func_name is None:
+            return ""
+        else:
+            try:
+                for tool in self.tools:
+                    if tool.__name__ == func_name:
+                        tool_final = tool
+                func_kwargs = decision_dict.get("params")
+
+                loop = asyncio.get_running_loop()
+                with ProcessPoolExecutor() as pool:
+                    result = await loop.run_in_executor(pool, run_tool_with_kwargs, tool_final, **func_kwargs)
+                return result
+            except Exception as e:
+                print(e)
+                return ""

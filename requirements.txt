@@ -5,3 +5,4 @@ sentence-transformers
 geopy
 timezonefinder
 pytz
+duckduckgo_search[lxml]

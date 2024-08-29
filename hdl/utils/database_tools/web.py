@@ -26,7 +26,7 @@ def web_search_text(
         return f"{str(e)}: 未搜索（获取）到相关内容，可过一段时间再次尝试。"
     for result in results:
         if "wikipedia" not in result['href']:
-
+            print(f"Getting info from {result['href']}")
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
             }
@@ -47,4 +47,4 @@ def web_search_text(
                     result_str += "\n"
             except Exception as e:
                 print(f"{str(e)}: 从{result['href']}未搜索（获取）到相关内容。")
-        return result_str
+    return result_str

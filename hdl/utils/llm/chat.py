@@ -252,7 +252,7 @@ class OpenAI_M():
         Returns:
             str: The decision dictionary string.
         """
-        fn_template = kwargs.get("fn_template", FN_TEMPLATE)
+        fn_template = kwargs.pop("fn_template", FN_TEMPLATE)
         prompt_final = fn_template
         for tool in self.tools:
             prompt_final += self.tool_desc.get(tool.__name__, "")

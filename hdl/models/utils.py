@@ -49,10 +49,10 @@ def load_model(
         init_args = checkpoint['init_args']
         assert model_name is not None
         model = MODEL_DICT[model_name](**init_args)
-        model.load_state_dict( 
-            checkpoint['model_state_dict'], 
+        model.load_state_dict(
+            checkpoint['model_state_dict'],
         )
-    
+
     elif isinstance(model, nn.DataParallel):
         state_dict = checkpoint['model_state_dict']
         from collections import OrderedDict
@@ -66,10 +66,10 @@ def load_model(
             new_state_dict[k] = v
         model.load_state_dict(new_state_dict)
     else:
-        model.load_state_dict( 
-            checkpoint['model_state_dict'], 
+        model.load_state_dict(
+            checkpoint['model_state_dict'],
         )
-    
+
     if optimizer is not None:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     epoch = checkpoint.get('epoch', 0)

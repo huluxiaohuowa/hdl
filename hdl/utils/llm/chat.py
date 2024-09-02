@@ -239,7 +239,11 @@ class OpenAI_M():
             else:
                 return self.invoke(prompt_final, **kwargs)
 
-    def get_decision(self, prompt: str, **kwargs: t.Any):
+    def get_decision(
+        self, prompt: str,
+        fn_template: str = FN_TEMPLATE,
+        **kwargs: t.Any,
+    ):
         """Get decision based on the given prompt.
 
         Args:
@@ -249,7 +253,7 @@ class OpenAI_M():
         Returns:
             str: The decision dictionary string.
         """
-        prompt_final = FN_TEMPLATE
+        prompt_final = fn_template
         for tool in self.tools:
             prompt_final += self.tool_desc.get(tool.__name__, "")
         prompt_final += f"\n用户的问题：\n{prompt}"
@@ -257,7 +261,12 @@ class OpenAI_M():
         print(decision_dict_str)
         return decision_dict_str
 
-    def get_tool_result(self, prompt: str, **kwargs: t.Any):
+    def get_tool_result(
+        self,
+        prompt: str,
+        fn_template: str = FN_TEMPLATE,
+        **kwargs: t.Any
+    ):
         """Get the result of a tool based on the decision made.
 
         Args:
@@ -267,7 +276,11 @@ class OpenAI_M():
         Returns:
             str: The result of the tool.
         """
-        decision_dict_str = self.get_decision(prompt, **kwargs)
+        decision_dict_str = self.get_decision(
+            prompt,
+            fn_template=fn_template,
+            **kwargs
+        )
         try:
             decision_dict = json.loads(decision_dict_str)
         except Exception as e:

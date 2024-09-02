@@ -241,7 +241,6 @@ class OpenAI_M():
 
     def get_decision(
         self, prompt: str,
-        fn_template: str = FN_TEMPLATE,
         **kwargs: t.Any,
     ):
         """Get decision based on the given prompt.
@@ -253,6 +252,7 @@ class OpenAI_M():
         Returns:
             str: The decision dictionary string.
         """
+        fn_template = kwargs.get("fn_template", FN_TEMPLATE)
         prompt_final = fn_template
         for tool in self.tools:
             prompt_final += self.tool_desc.get(tool.__name__, "")
@@ -264,7 +264,6 @@ class OpenAI_M():
     def get_tool_result(
         self,
         prompt: str,
-        fn_template: str = FN_TEMPLATE,
         **kwargs: t.Any
     ):
         """Get the result of a tool based on the decision made.
@@ -278,7 +277,6 @@ class OpenAI_M():
         """
         decision_dict_str = self.get_decision(
             prompt,
-            fn_template=fn_template,
             **kwargs
         )
         try:
@@ -300,7 +298,11 @@ class OpenAI_M():
                 print(e)
                 return ""
 
-    async def get_tool_result_async(self, prompt: str, **kwargs: t.Any):
+    async def get_tool_result_async(
+        self,
+        prompt,
+        **kwargs: t.Any
+    ):
         """
         Asynchronous version of the get_tool_result function that can run in parallel using multiprocessing.
 

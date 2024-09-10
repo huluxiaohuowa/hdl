@@ -166,7 +166,7 @@ class OpenAI_M():
         """
         content = [
             {"type": "text", "text": prompt},
-        ],
+        ]
         if image_url is not None:
             image_content = {
                 "type": "image_url",
@@ -209,7 +209,7 @@ class OpenAI_M():
         """
         content = [
             {"type": "text", "text": prompt},
-        ],
+        ]
         if image_url is not None:
             image_content = {
                 "type": "image_url",

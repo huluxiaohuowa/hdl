@@ -6,3 +6,6 @@ geopy
 timezonefinder
 pytz
 duckduckgo_search[lxml]
+opencv-python
+redis[hiredis]
+Pillow

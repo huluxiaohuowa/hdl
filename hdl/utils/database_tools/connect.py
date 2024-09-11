@@ -1,16 +1,17 @@
 import psycopg
+import redis
 
 
 def connect_by_infofile(info_file: str) -> psycopg.Connection:
     """Create a postgres connection
 
     Args:
-        info_file (str): 
+        info_file (str):
             the path of the connection info like
             host=127.0.0.1 dbname=dbname port=5432 user=postgres password=lala
 
     Returns:
-        psycopg.Connection: 
+        psycopg.Connection:
             the connection instance should be closed after committing.
     """
     conn = psycopg.connect(
@@ -26,3 +27,16 @@ def connect_by_infofile(info_file: str) -> psycopg.Connection:
 #         print(record)
 #     conn.commit()
 #     conn.close()
+
+def conn_redis(
+    host: str,
+    port: int
+):
+    client = redis.Redis(
+        host=host,
+        port=port,
+        decode_responses=True
+    )
+    res = client.ping()
+    print(res)
+    return client

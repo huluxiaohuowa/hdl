@@ -1,19 +1,20 @@
-import requests
+from pathlib import Path
+import json
 
 import torch
 import numpy as np
 from PIL import Image
-from transformers import ChineseCLIPProcessor, ChineseCLIPModel
+# from transformers import ChineseCLIPProcessor, ChineseCLIPModel
+import open_clip
 
 from ..database_tools.connect import conn_redis
 
 
-# url = "https://clip-cn-beijing.oss-cn-beijing.aliyuncs.com/pokemon.jpeg"
-# image = Image.open(requests.get(url, stream=True).raw)
 __all__ = [
     "ImgHandler"
 ]
 
+HF_HUB_PREFIX = "hf-hub:"
 
 class ImgHandler:
     def __init__(
@@ -29,9 +30,31 @@ class ImgHandler:
                 else torch.device("cpu")
         else:
             self.device = device
+        ckpt_file = (
+            Path(model_path) / Path("open_clip_pytorch_model.bin")
+        ).as_posix()
 
-        self.model = ChineseCLIPModel.from_pretrained(model_path).to(self.device)
-        self.processor = ChineseCLIPProcessor.from_pretrained(model_path)
+        self.open_clip_cfg = json.load(
+            open(Path(model_path) / Path("open_clip_config.json"))
+        )
+        self.model_name = (
+            self.open_clip_cfg['model_cfg']['text_cfg']['hf_tokenizer_name']
+            .split('/')[-1]
+        )
+
+        self.model, self.preprocess_train, self.preprocess_val = (
+            open_clip.create_model_and_transforms(
+                model_name=self.model_name,
+                pretrained=ckpt_file,
+                device=self.device,
+                # precision=precision
+            )
+        )
+        self.tokenizer = open_clip.get_tokenizer(
+            HF_HUB_PREFIX + model_path
+        )
+        # self.model = ChineseCLIPModel.from_pretrained(model_path).to(self.device)
+        # self.processor = ChineseCLIPProcessor.from_pretrained(model_path)
         self.redis_host = redis_host
         self.redis_port = redis_port
         self._redis_conn = None
@@ -43,48 +66,45 @@ class ImgHandler:
             self._redis_conn = conn_redis(self.redis_host, self.redis_port)
         return self._redis_conn
 
-    def get_img_features(self, images, **kwargs):
-        inputs = self.processor(
-            images=images,
-            return_tensors="pt",
-            **kwargs
-        ).to(self.device)
-        image_features = self.model.get_image_features(**inputs)
-        image_features = image_features / \
-            image_features.norm(p=2, dim=-1, keepdim=True)
-        return image_features
+    def get_img_features(
+        self,
+        images,
+        to_numpy = False,
+        **kwargs
+    ):
+        imgs = [
+            self.preprocess_val(Image.open(image)).unsqueeze(0).to(self.device)
+            for image in images
+        ]
+        img_features = self.model.encode_image(imgs, **kwargs)
+        img_features /= img_features.norm(dim=-1, keepdim=True)
+        if to_numpy:
+            img_features = img_features.cpu().numpy()
+        return img_features
 
     def get_text_features(
         self,
         texts,
+        to_numpy = False,
         **kwargs
     ):
-        inputs = self.processor(
-            text=texts,
-            padding=True,
-            return_tensors="pt",
-            **kwargs
-        ).to(self.device)
-        text_features = self.model.get_text_features(**inputs)
-        text_features = text_features / \
-            text_features.norm(p=2, dim=-1, keepdim=True)
-        return text_features
+        txts = self.tokenizer(texts).to(self.device)
+        txt_features = self.model.encode_text(txts, **kwargs)
+        txt_features /= txt_features.norm(dim=-1, keepdim=True)
+        if to_numpy:
+            txt_features = txt_features.cpu().numpy()
+        return txt_features
 
-    def get_text_img_sims(
+
+    def get_text_img_probs(
         self,
         texts,
         images,
         **kwargs
     ):
-        inputs = self.processor(
-            text=texts,
-            images=images,
-            return_tensors="pt",
-            padding=True,
-            **kwargs
-        ).to(self.device)
-        outputs = self.model(**inputs)
-        logits_per_image = outputs.logits_per_image  # this is the image-text similarity score
-        probs = logits_per_image.softmax(dim=1)
-        return probs
+        image_features = self.get_img_features(images, **kwargs)
+        text_features = self.get_text_features(texts, **kwargs)
+        text_probs = (100.0 * image_features @ text_features.T).softmax(dim=-1)
+        return text_probs
+
 

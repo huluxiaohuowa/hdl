@@ -3,7 +3,6 @@ import requests
 import torch
 import numpy as np
 from PIL import Image
-import redis
 from transformers import ChineseCLIPProcessor, ChineseCLIPModel
 
 from ..database_tools.connect import conn_redis
@@ -11,6 +10,9 @@ from ..database_tools.connect import conn_redis
 
 # url = "https://clip-cn-beijing.oss-cn-beijing.aliyuncs.com/pokemon.jpeg"
 # image = Image.open(requests.get(url, stream=True).raw)
+__all__ = [
+    "ImgHandler"
+]
 
 
 class ImgHandler:

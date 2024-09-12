@@ -1,8 +1,6 @@
-import psycopg
-import redis
 
-
-def connect_by_infofile(info_file: str) -> psycopg.Connection:
+def connect_by_infofile(info_file: str):
+    import psycopg
     """Create a postgres connection
 
     Args:
@@ -32,6 +30,7 @@ def conn_redis(
     host: str,
     port: int
 ):
+    import redis
     client = redis.Redis(
         host=host,
         port=port,

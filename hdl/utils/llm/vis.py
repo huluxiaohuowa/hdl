@@ -21,12 +21,21 @@ class ImgHandler:
         model_path,
         redis_host,
         redis_port,
+        device: str = None
     ) -> None:
-        self.model = ChineseCLIPModel.from_pretrained(model_path)
+        if device is None:
+            self.device = torch.device("cuda") \
+                if torch.cuda.is_available() \
+                else torch.device("cpu")
+        else:
+            self.device = device
+
+        self.model = ChineseCLIPModel.from_pretrained(model_path).to(self.device)
         self.processor = ChineseCLIPProcessor.from_pretrained(model_path)
         self.redis_host = redis_host
         self.redis_port = redis_port
         self._redis_conn = None
+
 
     @property
     def redis_conn(self):
@@ -39,7 +48,7 @@ class ImgHandler:
             images=images,
             return_tensors="pt",
             **kwargs
-        )
+        ).to(self.device)
         image_features = self.model.get_image_features(**inputs)
         image_features = image_features / \
             image_features.norm(p=2, dim=-1, keepdim=True)
@@ -55,7 +64,7 @@ class ImgHandler:
             padding=True,
             return_tensors="pt",
             **kwargs
-        )
+        ).to(self.device)
         text_features = self.model.get_text_features(**inputs)
         text_features = text_features / \
             text_features.norm(p=2, dim=-1, keepdim=True)

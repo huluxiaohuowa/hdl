@@ -54,6 +54,7 @@ class ImgHandler:
                 # precision=precision
             )
         )
+        self.vector_dimension = self.open_clip_cfg["model_cfg"]["embed_dim"]
         self.tokenizer = open_clip.get_tokenizer(
             HF_HUB_PREFIX + model_path
         )

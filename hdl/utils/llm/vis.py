@@ -22,6 +22,7 @@ class ImgHandler:
         model_path,
         redis_host,
         redis_port,
+        model_name: str = None,
         device: str = None
     ) -> None:
         if device is None:
@@ -37,10 +38,13 @@ class ImgHandler:
         self.open_clip_cfg = json.load(
             open(Path(model_path) / Path("open_clip_config.json"))
         )
-        self.model_name = (
-            self.open_clip_cfg['model_cfg']['text_cfg']['hf_tokenizer_name']
-            .split('/')[-1]
-        )
+        if model_name is not None:
+            self.model_name = model_name
+        else:
+            self.model_name = (
+                self.open_clip_cfg['model_cfg']['text_cfg']['hf_tokenizer_name']
+                .split('/')[-1]
+            )
 
         self.model, self.preprocess_train, self.preprocess_val = (
             open_clip.create_model_and_transforms(
@@ -103,11 +107,17 @@ class ImgHandler:
         self,
         texts,
         images,
+        probs: bool = False,
+        to_numpy: bool = False,
         **kwargs
     ):
         image_features = self.get_img_features(images, **kwargs)
         text_features = self.get_text_features(texts, **kwargs)
-        text_probs = (100.0 * image_features @ text_features.T).softmax(dim=-1)
+        text_probs = (100.0 * image_features @ text_features.T)
+        if probs:
+            text_probs = text_probs.softmax(dim=-1)
+        if to_numpy:
+            text_probs = text_probs.cpu().numpy()
         return text_probs
 
 

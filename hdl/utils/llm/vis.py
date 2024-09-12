@@ -72,10 +72,10 @@ class ImgHandler:
         to_numpy = False,
         **kwargs
     ):
-        imgs = [
+        imgs = torch.stack([
             self.preprocess_val(Image.open(image)).unsqueeze(0).to(self.device)
             for image in images
-        ]
+        ])
         img_features = self.model.encode_image(imgs, **kwargs)
         img_features /= img_features.norm(dim=-1, keepdim=True)
         if to_numpy:
@@ -88,7 +88,10 @@ class ImgHandler:
         to_numpy = False,
         **kwargs
     ):
-        txts = self.tokenizer(texts).to(self.device)
+        txts = self.tokenizer(
+            texts,
+            context_length=self.model.context_length
+        ).to(self.device)
         txt_features = self.model.encode_text(txts, **kwargs)
         txt_features /= txt_features.norm(dim=-1, keepdim=True)
         if to_numpy:

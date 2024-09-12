@@ -12,6 +12,7 @@ import sys
 import importlib
 import subprocess
 import re
+from pathlib import Path
 
 import multiprocess as mp
 
@@ -21,7 +22,7 @@ import json
 
 def in_jupyter():
     """Check if the code is running in a Jupyter notebook.
-    
+
         Returns:
             bool: True if running in Jupyter notebook, False otherwise.
     """
@@ -32,7 +33,7 @@ def in_jupyter():
 
 def in_docker():
     """Check if the code is running inside a Docker container.
-    
+
         Returns:
             bool: True if running inside a Docker container, False otherwise.
     """
@@ -44,10 +45,10 @@ def get_files(
     file_types: list = ["txt"]
 ):
     """Get a list of files with specific file extensions in the given directory path.
-    
+
     Args:
         dir_path (str): The path to the target directory.
-    
+
     Returns:
         list: A list of absolute file paths that have file extensions such as .md, .doc, .docx, .pdf, .csv, or .txt.
     """
@@ -56,7 +57,7 @@ def get_files(
     for filepath, dirnames, filenames in os.walk(dir_path):
         # os.walk 函数将递归遍历指定文件夹
         filenames = [f for f in filenames if not f[0] == '.']
-        dirnames[:] = [d for d in dirnames if not d[0] == '.'] 
+        dirnames[:] = [d for d in dirnames if not d[0] == '.']
         for filename in filenames:
             # 通过后缀名判断文件类型是否满足要求
             if filename.endswith(file_types):
@@ -67,10 +68,10 @@ def get_files(
 
 def get_dataset_file(filename):
     """Get dataset file.
-    
+
     Args:
         filename (str): The name of the dataset file.
-    
+
     Returns:
         dict: The data loaded from the dataset file.
     """
@@ -82,11 +83,11 @@ def get_dataset_file(filename):
 
 def recursive_glob(treeroot, pattern):
     """Recursively searches for files matching a specified pattern starting from the given directory.
-    
+
     Args:
         treeroot (str): The root directory to start the search from.
         pattern (str): The pattern to match the files against.
-    
+
     Returns:
         list: A list of file paths that match the specified pattern.
     """
@@ -104,9 +105,9 @@ def makedirs(path: str, isfile: bool = False) -> None:
 
 
     Args:
-        path (str): Path to a directory or file. 
+        path (str): Path to a directory or file.
         isfile (bool, optional): Whether the provided path is a directory or file.Defaults to False.
-    """    
+    """
     if isfile:
         path = os.path.dirname(path)
     if path != '':
@@ -120,10 +121,10 @@ def get_current_dir():
 
 def get_num_lines(file):
     """Get the number of lines in a file.
-    
+
     Args:
         file (str): The path to the file.
-    
+
     Returns:
         int: The number of lines in the file.
     """
@@ -143,11 +144,11 @@ def chunkify_file(
     """
     function to divide a large text file into chunks each having size ~= size so that the chunks are line aligned
 
-    Params : 
+    Params :
         fname : path to the file to be chunked
         size : size of each chink is ~> this
         skiplines : number of lines in the begining to skip, -1 means don't skip any lines
-    Returns : 
+    Returns :
         start and end position of chunks in Bytes
     """
     chunks = []
@@ -177,7 +178,7 @@ def parallel_apply_line_by_line_chunk(chunk_data):
     function to apply a function to each line in a chunk
 
     Params :
-        chunk_data : the data for this chunk 
+        chunk_data : the data for this chunk
     Returns :
         list of the non-None results for this chunk
     """
@@ -262,10 +263,10 @@ def parallel_apply_line_by_line(
 
 def get_func_from_dir(score_dir: str) -> t.Tuple[t.Callable, str]:
     """Get function and mode from directory.
-    
+
     Args:
         score_dir (str): The directory path containing the function file.
-        
+
     Returns:
         Tuple[Callable, str]: A tuple containing the main function and the mode.
     """
@@ -277,9 +278,17 @@ def get_func_from_dir(score_dir: str) -> t.Tuple[t.Callable, str]:
         file_name = "main"
 
     sys.path.append(func_dir)
-    module = importlib.import_module(file_name) 
+    module = importlib.import_module(file_name)
     try:
         mode = module.MODE
     except Exception as _:
         mode = 'batch'
-    return module.main, mode 
+    return module.main, mode
+
+
+def find_images_recursive(
+    directory,
+    extensions=(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff")
+):
+    path = Path(directory)
+    return [str(file) for file in path.rglob("*") if file.suffix.lower() in extensions]

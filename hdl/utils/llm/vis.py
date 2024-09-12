@@ -24,10 +24,13 @@ class ImgHandler:
         self.processor = ChineseCLIPProcessor.from_pretrained(model_path)
         self.redis_host = redis_host
         self.redis_port = redis_port
+        self._redis_conn = None
 
     @property
     def redis_conn(self):
-        return conn_redis(self.redis_host, self.redis_port)
+        if self._redis_conn is None:
+            self._redis_conn = conn_redis(self.redis_host, self.redis_port)
+        return self._redis_conn
 
     def get_img_features(self, images, **kwargs):
         inputs = self.processor(

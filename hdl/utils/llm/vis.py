@@ -76,14 +76,15 @@ class ImgHandler:
         to_numpy = False,
         **kwargs
     ):
-        imgs = torch.stack([
-            self.preprocess_val(Image.open(image)).to(self.device)
-            for image in images
-        ])
-        img_features = self.model.encode_image(imgs, **kwargs)
-        img_features /= img_features.norm(dim=-1, keepdim=True)
-        if to_numpy:
-            img_features = img_features.cpu().numpy()
+        with torch.no_grad(), torch.cuda.amp.autocast():
+            imgs = torch.stack([
+                self.preprocess_val(Image.open(image)).to(self.device)
+                for image in images
+            ])
+            img_features = self.model.encode_image(imgs, **kwargs)
+            img_features /= img_features.norm(dim=-1, keepdim=True)
+            if to_numpy:
+                img_features = img_features.cpu().numpy()
         return img_features
 
     def get_text_features(
@@ -92,14 +93,15 @@ class ImgHandler:
         to_numpy = False,
         **kwargs
     ):
-        txts = self.tokenizer(
-            texts,
-            context_length=self.model.context_length
-        ).to(self.device)
-        txt_features = self.model.encode_text(txts, **kwargs)
-        txt_features /= txt_features.norm(dim=-1, keepdim=True)
-        if to_numpy:
-            txt_features = txt_features.cpu().numpy()
+        with torch.no_grad(), torch.cuda.amp.autocast():
+            txts = self.tokenizer(
+                texts,
+                context_length=self.model.context_length
+            ).to(self.device)
+            txt_features = self.model.encode_text(txts, **kwargs)
+            txt_features /= txt_features.norm(dim=-1, keepdim=True)
+            if to_numpy:
+                txt_features = txt_features.cpu().numpy()
         return txt_features
 
 
@@ -111,13 +113,14 @@ class ImgHandler:
         to_numpy: bool = False,
         **kwargs
     ):
-        image_features = self.get_img_features(images, **kwargs)
-        text_features = self.get_text_features(texts, **kwargs)
-        text_probs = (100.0 * image_features @ text_features.T)
-        if probs:
-            text_probs = text_probs.softmax(dim=-1)
-        if to_numpy:
-            text_probs = text_probs.cpu().numpy()
+        with torch.no_grad(), torch.cuda.amp.autocast():
+            image_features = self.get_img_features(images, **kwargs)
+            text_features = self.get_text_features(texts, **kwargs)
+            text_probs = (100.0 * image_features @ text_features.T)
+            if probs:
+                text_probs = text_probs.softmax(dim=-1)
+            if to_numpy:
+                text_probs = text_probs.cpu().numpy()
         return text_probs
 
 

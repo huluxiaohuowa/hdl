@@ -73,7 +73,7 @@ class ImgHandler:
         **kwargs
     ):
         imgs = torch.stack([
-            self.preprocess_val(Image.open(image)).unsqueeze(0).to(self.device)
+            self.preprocess_val(Image.open(image)).to(self.device)
             for image in images
         ])
         img_features = self.model.encode_image(imgs, **kwargs)

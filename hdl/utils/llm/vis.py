@@ -293,7 +293,8 @@ class ImgHandler:
         Example:
             vec_pics_todb(images=['image1.jpg', 'image2.jpg'])
         """
-        sorted_imgs = natsort.natsorted(images)
+        # sorted_imgs = natsort.natsorted(images)
+        sorted_imgs = images
         img_feats = self.get_img_features(sorted_imgs, to_numpy=True)
         pipeline = self.db_conn.pipeline()
         for img_file, emb in tqdm(zip(sorted_imgs, img_feats)):

@@ -333,25 +333,22 @@ class ImgHandler:
             f"{num_docs} documents indexed with {indexing_failures} failures"
         )
 
-    def img_search(
+    def emb_search(
         self,
-        img,
+        emb_query,
         num_max: int = 3,
-        extra_params: dict = None
+        extra_params: dict = None,
     ):
-        """Search for similar images in the database based on the input image.
+        """Search for similar embeddings in the database.
 
         Args:
-            img: Input image to search for similar images.
-            num_max: Maximum number of similar images to return (default is 3).
-            extra_params: Additional parameters to include in the search query (default is None).
+            emb_query (str): The embedding query to search for.
+            num_max (int, optional): The maximum number of results to return. Defaults to 3.
+            extra_params (dict, optional): Extra parameters to include in the search query. Defaults to None.
 
         Returns:
-            List of tuples containing the ID and JSON data of similar images found in the database.
+            list: A list of tuples containing the document ID and JSON data for each result.
         """
-        emb_query = self.get_img_features(
-            [img], to_numpy=True
-        ).astype(np.float32)[0].tobytes()
         query = (
             Query(
                 f"(*)=>[KNN {str(num_max)} @vector $query_vector AS vector_score]"
@@ -377,6 +374,32 @@ class ImgHandler:
             (result_doc.id, json.loads(result_doc.json))
             for result_doc in result_docs
         ]
+        return results
+
+    def img_search(
+        self,
+        img,
+        num_max: int = 3,
+        extra_params: dict = None
+    ):
+        """Search for similar images in the database based on the input image.
+
+        Args:
+            img: Input image to search for similar images.
+            num_max: Maximum number of similar images to return (default is 3).
+            extra_params: Additional parameters to include in the search query (default is None).
+
+        Returns:
+            List of tuples containing the ID and JSON data of similar images found in the database.
+        """
+        emb_query = self.get_img_features(
+            [img], to_numpy=True
+        ).astype(np.float32)[0].tobytes()
+        results = self.emb_search(
+            emb_query=emb_query,
+            num_max=num_max,
+            extra_params=extra_params
+        )
         return results
 
 

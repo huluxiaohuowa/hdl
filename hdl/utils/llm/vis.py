@@ -6,6 +6,7 @@ import numpy as np
 from PIL import Image
 # from transformers import ChineseCLIPProcessor, ChineseCLIPModel
 import open_clip
+import natsort
 
 from ..database_tools.connect import conn_redis
 
@@ -202,5 +203,28 @@ class ImgHandler:
                 sims = sims.cpu().numpy()
             # > 0.9 很相似
             return sims
+
+    def vec_pics_todb(self, images):
+        """Save image features to a Redis database.
+
+        Args:
+            images (list): A list of image file paths.
+
+        Returns:
+            None
+
+        Example:
+            vec_pics_todb(images=['image1.jpg', 'image2.jpg'])
+        """
+        sorted_imgs = natsort.natsorted(images)
+        img_feats = self.get_img_features(sorted_imgs, to_numpy=True)
+        pipeline = self.ih.db_conn.pipeline()
+        for img_file, emb in zip(sorted_imgs, img_feats):
+            # 初始化 Redis，先使用 img 文件名作为 Key 和 Value，后续再更新为图片特征向量
+            pipeline.json().set(img_file, "$", img_file)
+            emb = emb.astype(np.float32).tolist()
+            pipeline.json().set(img_file, "$", emb)
+            res = pipeline.execute()
+            print('redis set:', res)
 
 

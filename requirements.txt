@@ -11,3 +11,4 @@ redis[hiredis]
 psycopg[binary]
 Pillow
 open_clip_torch
+natsort

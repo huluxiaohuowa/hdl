@@ -18,7 +18,9 @@ from ..database_tools.connect import conn_redis
 
 
 __all__ = [
-    "ImgHandler"
+    "ImgHandler",
+    "imgfile_to_base64",
+    "imgbase64_to_pilimg"
 ]
 
 HF_HUB_PREFIX = "hf-hub:"

@@ -11,6 +11,8 @@ import open_clip
 import natsort
 from redis.commands.search.field import VectorField
 from redis.commands.search.indexDefinition import IndexDefinition, IndexType
+from hdl.jupyfuncs.show.pbar import tqdm
+from redis.commands.search.query import Query
 
 from ..database_tools.connect import conn_redis
 
@@ -75,6 +77,7 @@ class ImgHandler:
         self.db_port = db_port
         self._db_conn = None
         self.num_vec_dim = num_vec_dim
+        self.pic_idx_name = "idx:pic_idx"
         if load_model:
             self.load_model()
 
@@ -142,10 +145,26 @@ class ImgHandler:
         Returns:
             torch.Tensor or numpy.ndarray: Image features extracted from the model.
         """
+
+        images_fixed = []
+        for img in images:
+            if isinstance(img, str):
+                if Path(Path(img).is_file()):
+                    images_fixed.append(Image.open(img))
+                elif img.startswith("data:image/jpeg;base64,"):
+                    images_fixed.append(imgbase64_to_pilimg(img))
+            elif isinstance(img, Image.Image):
+                images_fixed.append(img)
+            else:
+                raise TypeError(
+                    f"Not supported image type for {type(img)}"
+                )
+
+
         with torch.no_grad(), torch.amp.autocast("cuda"):
             imgs = torch.stack([
-                self.preprocess_val(Image.open(image)).to(self.device)
-                for image in images
+                self.preprocess_val(image).to(self.device)
+                for image in images_fixed
             ])
             img_features = self.model.encode_image(imgs, **kwargs)
             img_features /= img_features.norm(dim=-1, keepdim=True)
@@ -242,7 +261,11 @@ class ImgHandler:
             # > 0.9 很相似
             return sims
 
-    def vec_pics_todb(self, images):
+    def vec_pics_todb(
+        self,
+        images: list[str],
+        print_idx_info: bool = False
+    ):
         """Save image features to a Redis database.
 
         Args:
@@ -257,7 +280,7 @@ class ImgHandler:
         sorted_imgs = natsort.natsorted(images)
         img_feats = self.get_img_features(sorted_imgs, to_numpy=True)
         pipeline = self.db_conn.pipeline()
-        for img_file, emb in zip(sorted_imgs, img_feats):
+        for img_file, emb in tqdm(zip(sorted_imgs, img_feats)):
             # 初始化 Redis，先使用 img 文件名作为 Key 和 Value，后续再更新为图片特征向量
             # pipeline.json().set(img_file, "$", img_file)
             emb = emb.astype(np.float32).tolist()
@@ -281,31 +304,80 @@ class ImgHandler:
                 as_name="vector",  # 给这个字段定义一个别名，后续可以使用
             ),
         )
-        vector_idx_name = "idx:pic_idx"
+        # vector_idx_name = "idx:pic_idx"
         definition = IndexDefinition(
             prefix=["pic-"],
             index_type=IndexType.JSON
         )
         res = self.db_conn.ft(
-            vector_idx_name
+            self.pic_idx_name
         ).create_index(
             fields=schema,
             definition=definition
         )
         print("create_index:", res)
+        if print_idx_info:
+            print(self.pic_idx_info)
 
     @property
     def pic_idx_info(self):
         res = self.db_conn.ping()
         print("redis connected:", res)
-
-        vector_idx_name = "idx:pic_idx"
-
+        # vector_idx_name = "idx:pic_idx"
         # 从 Redis 数据库中读取索引状态
-        info = self.db_conn.ft(vector_idx_name).info()
+        info = self.db_conn.ft(self.pic_idx_name).info()
         # 获取索引状态中的 num_docs 和 hash_indexing_failures
         num_docs = info["num_docs"]
         indexing_failures = info["hash_indexing_failures"]
-        print(f"{num_docs} documents indexed with {indexing_failures} failures")
+        return (
+            f"{num_docs} documents indexed with {indexing_failures} failures"
+        )
+
+    def img_search(
+        self,
+        img,
+        num_max: int = 3,
+        extra_params: dict = None
+    ):
+        """Search for similar images in the database based on the input image.
+
+        Args:
+            img: Input image to search for similar images.
+            num_max: Maximum number of similar images to return (default is 3).
+            extra_params: Additional parameters to include in the search query (default is None).
+
+        Returns:
+            List of tuples containing the ID and JSON data of similar images found in the database.
+        """
+        emb_query = self.get_img_features(
+            [img], to_numpy=True
+        ).astype(np.float32)[0].tobytes()
+        query = (
+            Query(
+                f"(*)=>[KNN {str(num_max)} @vector $query_vector AS vector_score]"
+            )
+            .sort_by("vector_score")
+            .return_fields("$")
+            .dialect(2)
+        )
+        if extra_params is None:
+            extra_params = {}
+        result_docs = (
+            self.db_conn.ft("idx:pic_idx")
+            .search(
+                query,
+                {
+                    "query_vector": emb_query
+                }
+                | extra_params,
+            )
+            .docs
+        )
+        results = [
+            (result_doc.id, json.loads(result_doc.json))
+            for result_doc in result_docs
+        ]
+        return results
+
 
 

@@ -339,8 +339,7 @@ class ImgHandler:
         if print_idx_info:
             print(self.pic_idx_info)
 
-    @property
-    def pic_idx_info(
+    def get_pic_idx_info(
         self,
         conn=None
     ):

@@ -27,20 +27,29 @@ HF_HUB_PREFIX = "hf-hub:"
 
 
 def imgfile_to_base64(img_dir: str):
-    """Converts an image file to base64 format.
+    """Converts an image file to base64 format, supporting multiple formats.
 
     Args:
         img_dir (str): The directory path of the image file.
 
     Returns:
-        str: The image file converted to base64 format.
+        str: The image file converted to base64 format with appropriate MIME type.
     """
+    # Open the image file
     with open(img_dir, 'rb') as file:
-        img_base64 = "data:image/jpeg;base64," + base64.b64encode(
-            file.read()
-        ).decode('utf-8')
-    return img_base64
+        # Read the image data
+        img_data = file.read()
 
+        # Get the image format (e.g., JPEG, PNG, etc.)
+        img_format = Image.open(BytesIO(img_data)).format.lower()
+
+        # Determine the MIME type based on the format
+        mime_type = f"image/{img_format}"
+
+        # Convert the image data to base64
+        img_base64 = f"data:{mime_type};base64," + base64.b64encode(img_data).decode('utf-8')
+
+    return img_base64
 
 def imgbase64_to_pilimg(img_base64: str):
     """Converts a base64 encoded image to a PIL image.
@@ -51,6 +60,7 @@ def imgbase64_to_pilimg(img_base64: str):
     Returns:
         PIL.Image: A PIL image object.
     """
+    # Decode the base64 string and convert it back to an image
     img_pil = Image.open(
         BytesIO(
             base64.b64decode(img_base64.split(",")[-1])
@@ -167,7 +177,7 @@ class ImgHandler:
             if isinstance(img, str):
                 if Path(img).is_file():
                     images_fixed.append(Image.open(img))
-                elif img.startswith("data:image/jpeg;base64,"):
+                elif img.startswith("data:image"):
                     images_fixed.append(imgbase64_to_pilimg(img))
             elif isinstance(img, Image.Image):
                 images_fixed.append(img)

@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import base64
 from io import BytesIO
+import requests
 
 import torch
 import numpy as np
@@ -24,6 +25,43 @@ __all__ = [
 ]
 
 HF_HUB_PREFIX = "hf-hub:"
+
+import requests
+import base64
+from io import BytesIO
+from PIL import Image
+
+
+def imgurl_to_base64(image_url: str):
+    """Converts an image from a URL to base64 format.
+
+    Args:
+        image_url (str): The URL of the image.
+
+    Returns:
+        str: The image file converted to base64 format with appropriate MIME type.
+    """
+    # Send a GET request to fetch the image from the URL
+    response = requests.get(image_url)
+
+    # Ensure the request was successful
+    if response.status_code == 200:
+        # Read the image content from the response
+        img_data = response.content
+
+        # Load the image using PIL to determine its format
+        img = Image.open(BytesIO(img_data))
+        img_format = img.format.lower()  # Get image format (e.g., jpeg, png)
+
+        # Determine the MIME type based on the format
+        mime_type = f"image/{img_format}"
+
+        # Convert the image data to base64
+        img_base64 = f"data:{mime_type};base64," + base64.b64encode(img_data).decode('utf-8')
+
+        return img_base64
+    else:
+        raise Exception(f"Failed to retrieve image from {image_url}, status code {response.status_code}")
 
 
 def imgfile_to_base64(img_dir: str):

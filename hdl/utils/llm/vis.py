@@ -280,7 +280,8 @@ class ImgHandler:
     def vec_pics_todb(
         self,
         images: list[str],
-        print_idx_info: bool = False
+        conn=None,
+        print_idx_info: bool = False,
     ):
         """Save image features to a Redis database.
 
@@ -296,7 +297,9 @@ class ImgHandler:
         # sorted_imgs = natsort.natsorted(images)
         sorted_imgs = images
         img_feats = self.get_img_features(sorted_imgs, to_numpy=True)
-        pipeline = self.db_conn.pipeline()
+        if conn is None:
+            conn = self.db_conn
+        pipeline = conn.pipeline()
         for img_file, emb in tqdm(zip(sorted_imgs, img_feats)):
             # 初始化 Redis，先使用 img 文件名作为 Key 和 Value，后续再更新为图片特征向量
             # pipeline.json().set(img_file, "$", img_file)
@@ -326,7 +329,7 @@ class ImgHandler:
             prefix=["pic-"],
             index_type=IndexType.JSON
         )
-        res = self.db_conn.ft(
+        res = conn.ft(
             self.pic_idx_name
         ).create_index(
             fields=schema,
@@ -337,12 +340,17 @@ class ImgHandler:
             print(self.pic_idx_info)
 
     @property
-    def pic_idx_info(self):
-        res = self.db_conn.ping()
+    def pic_idx_info(
+        self,
+        conn=None
+    ):
+        if conn is None:
+            conn = self.db_conn
+        res = conn.ping()
         print("redis connected:", res)
         # vector_idx_name = "idx:pic_idx"
         # 从 Redis 数据库中读取索引状态
-        info = self.db_conn.ft(self.pic_idx_name).info()
+        info = conn.ft(self.pic_idx_name).info()
         # 获取索引状态中的 num_docs 和 hash_indexing_failures
         num_docs = info["num_docs"]
         indexing_failures = info["hash_indexing_failures"]
@@ -355,6 +363,7 @@ class ImgHandler:
         emb_query,
         num_max: int = 3,
         extra_params: dict = None,
+        conn=None
     ):
         """Search for similar embeddings in the database.
 
@@ -376,8 +385,10 @@ class ImgHandler:
         )
         if extra_params is None:
             extra_params = {}
+        if conn is None:
+            conn = self.db_conn
         result_docs = (
-            self.db_conn.ft("idx:pic_idx")
+            conn.ft("idx:pic_idx")
             .search(
                 query,
                 {
@@ -397,7 +408,8 @@ class ImgHandler:
         self,
         img,
         num_max: int = 3,
-        extra_params: dict = None
+        extra_params: dict = None,
+        conn=None
     ):
         """Search for similar images in the database based on the input image.
 
@@ -412,10 +424,13 @@ class ImgHandler:
         emb_query = self.get_img_features(
             [img], to_numpy=True
         ).astype(np.float32)[0].tobytes()
+        if conn is None:
+            conn = self.db_conn
         results = self.emb_search(
             emb_query=emb_query,
             num_max=num_max,
-            extra_params=extra_params
+            extra_params=extra_params,
+            conn=conn
         )
         return results
 

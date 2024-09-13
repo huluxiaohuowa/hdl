@@ -163,7 +163,7 @@ class ImgHandler:
         images_fixed = []
         for img in images:
             if isinstance(img, str):
-                if Path(Path(img).is_file()):
+                if Path(img).is_file():
                     images_fixed.append(Image.open(img))
                 elif img.startswith("data:image/jpeg;base64,"):
                     images_fixed.append(imgbase64_to_pilimg(img))

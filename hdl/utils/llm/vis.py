@@ -254,7 +254,7 @@ class ImgHandler:
         """
         sorted_imgs = natsort.natsorted(images)
         img_feats = self.get_img_features(sorted_imgs, to_numpy=True)
-        pipeline = self.ih.db_conn.pipeline()
+        pipeline = self.db_conn.pipeline()
         for img_file, emb in zip(sorted_imgs, img_feats):
             # 初始化 Redis，先使用 img 文件名作为 Key 和 Value，后续再更新为图片特征向量
             # pipeline.json().set(img_file, "$", img_file)

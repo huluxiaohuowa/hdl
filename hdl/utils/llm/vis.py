@@ -1,5 +1,7 @@
 from pathlib import Path
 import json
+import base64
+from io import BytesIO
 
 import torch
 import numpy as np
@@ -16,6 +18,40 @@ __all__ = [
 ]
 
 HF_HUB_PREFIX = "hf-hub:"
+
+
+def imgfile_to_base64(img_dir: str):
+    """Converts an image file to base64 format.
+
+    Args:
+        img_dir (str): The directory path of the image file.
+
+    Returns:
+        str: The image file converted to base64 format.
+    """
+    with open(img_dir, 'rb') as file:
+        img_base64 = "data:image/jpeg;base64," + base64.b64encode(
+            file.read()
+        ).decode('utf-8')
+    return img_base64
+
+
+def imgbase64_to_pilimg(img_base64: str):
+    """Converts a base64 encoded image to a PIL image.
+
+    Args:
+        img_base64 (str): Base64 encoded image string.
+
+    Returns:
+        PIL.Image: A PIL image object.
+    """
+    img_pil = Image.open(
+        BytesIO(
+            base64.b64decode(img_base64.split(",")[-1])
+        )
+    )
+    return img_pil
+
 
 class ImgHandler:
     def __init__(
@@ -221,9 +257,13 @@ class ImgHandler:
         pipeline = self.ih.db_conn.pipeline()
         for img_file, emb in zip(sorted_imgs, img_feats):
             # 初始化 Redis，先使用 img 文件名作为 Key 和 Value，后续再更新为图片特征向量
-            pipeline.json().set(img_file, "$", img_file)
+            # pipeline.json().set(img_file, "$", img_file)
             emb = emb.astype(np.float32).tolist()
-            pipeline.json().set(img_file, "$", emb)
+            emb_json = {
+                "emb": emb,
+                "data": imgfile_to_base64(img_file)
+            }
+            pipeline.json().set(img_file, "$", emb_json)
             res = pipeline.execute()
             print('redis set:', res)
 

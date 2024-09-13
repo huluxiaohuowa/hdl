@@ -68,6 +68,20 @@ class ImgHandler:
         num_vec_dim: int = None,
         load_model: bool = True,
     ) -> None:
+        """Initializes the class with the provided parameters.
+
+        Args:
+            model_path (str): Path to the model file.
+            db_host (str): Hostname of the database.
+            db_port (int): Port number of the database.
+            model_name (str, optional): Name of the model. Defaults to None.
+            device (str, optional): Device to run the model on. Defaults to "cpu".
+            num_vec_dim (int, optional): Number of vector dimensions. Defaults to None.
+            load_model (bool, optional): Whether to load the model. Defaults to True.
+
+        Returns:
+            None
+        """
 
         self.device = torch.device(device)
         self.model_path = model_path

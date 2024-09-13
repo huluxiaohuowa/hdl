@@ -9,6 +9,8 @@ from PIL import Image
 # from transformers import ChineseCLIPProcessor, ChineseCLIPModel
 import open_clip
 import natsort
+from redis.commands.search.field import VectorField
+from redis.commands.search.indexDefinition import IndexDefinition, IndexType
 
 from ..database_tools.connect import conn_redis
 
@@ -263,8 +265,47 @@ class ImgHandler:
                 "emb": emb,
                 "data": imgfile_to_base64(img_file)
             }
-            pipeline.json().set(img_file, "$", emb_json)
+            pipeline.json().set(f"pic-{img_file}", "$", emb_json)
             res = pipeline.execute()
-            print('redis set:', res)
+            # print('redis set:', res)
+
+        schema = (
+            VectorField(
+                "$.emb",  # 这是 JSON 中存储向量的路径
+                "FLAT",  # 使用 FLAT 索引类型
+                {
+                    "TYPE": "FLOAT32",  # 向量类型
+                    "DIM": self.num_vec_dim,  # 向量维度，必须与实际数据的维度一致
+                    "DISTANCE_METRIC": "COSINE",  # 余弦相似度作为距离度量
+                },
+                as_name="vector",  # 给这个字段定义一个别名，后续可以使用
+            ),
+        )
+        vector_idx_name = "idx:pic_idx"
+        definition = IndexDefinition(
+            prefix=["pic-"],
+            index_type=IndexType.JSON
+        )
+        res = self.db_conn.ft(
+            vector_idx_name
+        ).create_index(
+            fields=schema,
+            definition=definition
+        )
+        print("create_index:", res)
+
+    @property
+    def pic_idx_info(self):
+        res = self.db_conn.ping()
+        print("redis connected:", res)
+
+        vector_idx_name = "idx:pic_idx"
+
+        # 从 Redis 数据库中读取索引状态
+        info = self.db_conn.ft(vector_idx_name).info()
+        # 获取索引状态中的 num_docs 和 hash_indexing_failures
+        num_docs = info["num_docs"]
+        indexing_failures = info["hash_indexing_failures"]
+        print(f"{num_docs} documents indexed with {indexing_failures} failures")
 
 

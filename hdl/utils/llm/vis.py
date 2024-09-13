@@ -20,27 +20,43 @@ class ImgHandler:
     def __init__(
         self,
         model_path,
-        redis_host,
-        redis_port,
+        db_host,
+        db_port,
         model_name: str = None,
-        device: str = None
+        device: str = "cpu",
+        num_vec_dim: int = None,
+        load_model: bool = True,
     ) -> None:
-        if device is None:
-            self.device = torch.device("cuda") \
-                if torch.cuda.is_available() \
-                else torch.device("cpu")
-        else:
-            self.device = device
-        ckpt_file = (
-            Path(model_path) / Path("open_clip_pytorch_model.bin")
-        ).as_posix()
 
+        self.device = torch.device(device)
+        self.model_path = model_path
+        self.model_name = model_name
+
+        self.db_host = db_host
+        self.db_port = db_port
+        self._db_conn = None
+        self.num_vec_dim = num_vec_dim
+        if load_model:
+            self.load_model()
+
+    def load_model(self):
+        """Load the OpenCLIP model and related configurations.
+
+        This function loads the OpenCLIP model from the specified model path
+        and initializes the necessary components such as the model,
+        preprocessors for training and validation data, tokenizer, etc.
+
+        Returns:
+            None
+        """
+        ckpt_file = (
+            Path(self.model_path) / Path("open_clip_pytorch_model.bin")
+        ).as_posix()
         self.open_clip_cfg = json.load(
-            open(Path(model_path) / Path("open_clip_config.json"))
+            open(Path(self.model_path) / Path("open_clip_config.json"))
         )
-        if model_name is not None:
-            self.model_name = model_name
-        else:
+
+        if self.model_name is None:
             self.model_name = (
                 self.open_clip_cfg['model_cfg']['text_cfg']['hf_tokenizer_name']
                 .split('/')[-1]
@@ -54,27 +70,22 @@ class ImgHandler:
                 # precision=precision
             )
         )
-        self.vector_dimension = self.open_clip_cfg["model_cfg"]["embed_dim"]
+        if self.num_vec_dim is None:
+            self.num_vec_dim = self.open_clip_cfg["model_cfg"]["embed_dim"]
         self.tokenizer = open_clip.get_tokenizer(
-            HF_HUB_PREFIX + model_path
+            HF_HUB_PREFIX + self.model_path
         )
-        # self.model = ChineseCLIPModel.from_pretrained(model_path).to(self.device)
-        # self.processor = ChineseCLIPProcessor.from_pretrained(model_path)
-        self.redis_host = redis_host
-        self.redis_port = redis_port
-        self._redis_conn = None
-
 
     @property
-    def redis_conn(self):
+    def db_conn(self):
         """Establishes a connection to Redis server if not already connected.
 
             Returns:
                 Redis connection object: A connection to the Redis server.
         """
-        if self._redis_conn is None:
-            self._redis_conn = conn_redis(self.redis_host, self.redis_port)
-        return self._redis_conn
+        if self._db_conn is None:
+            self._db_conn = conn_redis(self.db_host, self.db_port)
+        return self._db_conn
 
     def get_img_features(
         self,

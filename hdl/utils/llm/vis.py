@@ -113,6 +113,7 @@ class ImgHandler:
         model_path,
         db_host,
         db_port,
+        conn=None,
         model_name: str = None,
         device: str = "cpu",
         num_vec_dim: int = None,

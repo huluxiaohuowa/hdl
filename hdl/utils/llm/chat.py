@@ -175,6 +175,8 @@ class OpenAI_M():
                 },
             }
             content.append(image_content)
+        else:
+            content = prompt
         response = self.client.chat.completions.create(
             messages=[{
                 "role": "user",
@@ -218,6 +220,8 @@ class OpenAI_M():
                 },
             }
             content.append(image_content)
+        else:
+            content = prompt
         response = self.client.chat.completions.create(
             messages=[{
                 "role": "user",

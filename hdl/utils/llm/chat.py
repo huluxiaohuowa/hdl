@@ -154,22 +154,19 @@ class OpenAI_M():
         stream: bool = True,
         **kwargs: t.Any,
     ):
-        """Get response from chat completion model.
+        """Get response from chatbot based on the provided prompt and optional images.
 
         Args:
-            prompt (str): The prompt text to generate a response for.
-            images (list, optional): List of image URLs to include in the prompt. Defaults to [].
+            prompt (str): The prompt to provide to the chatbot.
+            images (list, optional): List of images to include in the response. Defaults to [].
             image_keys (tuple, optional): Tuple containing keys for image data. Defaults to ("image", "image").
-            stop (list[str] | None, optional): List of strings to stop the conversation. Defaults to ["USER:", "ASSISTANT:"].
+            stop (list[str] | None, optional): List of strings that indicate the end of the conversation. Defaults to ["USER:", "ASSISTANT:"].
             model (str, optional): The model to use for generating the response. Defaults to "default_model".
-            stream (bool, optional): Whether to stream the response or not. Defaults to True.
-            **kwargs: Additional keyword arguments to pass to the chat completion API.
-
-        Yields:
-            str: The generated response content.
+            stream (bool, optional): Whether to stream the response. Defaults to True.
+            **kwargs: Additional keyword arguments to pass to the chatbot API.
 
         Returns:
-            str: The generated response content if stream is False.
+            dict: The response from the chatbot.
         """
         content = [
             {"type": "text", "text": prompt},
@@ -196,15 +193,64 @@ class OpenAI_M():
             model=model,
             **kwargs
         )
-        if not stream:
-            return response.choices[0].message.content
-        else:
-            for chunk in response:
-                content = chunk.choices[0].delta.content
-                if content:
-                    yield content
+        return response
 
     def invoke(
+        self,
+        *args,
+        **kwargs
+    ):
+        """Invoke the function with the given arguments and keyword arguments.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            str: The content of the first choice message in the response.
+        """
+        response = self.get_resp(*args, stream=False, **kwargs)
+        return response.choices[0].message.content
+
+    def stream(
+        self,
+        *args,
+        **kwargs
+    ):
+        """Stream content from the response in chunks.
+
+            Args:
+                *args: Variable length argument list.
+                **kwargs: Arbitrary keyword arguments.
+
+            Yields:
+                str: Content in chunks from the response.
+        """
+        response = self.get_resp(*args, stream=True, **kwargs)
+        for chunk in response:
+            content = chunk.choices[0].delta.content
+            if content:
+                yield content
+
+
+    def chat(self, *args, stream=True, **kwargs):
+        """Call either the stream or invoke method based on the value of the stream parameter.
+
+        Args:
+            *args: Variable length argument list.
+            stream (bool): A flag to determine whether to call the stream method (default is True).
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            The result of calling either the stream or invoke method based on the value of the stream parameter.
+        """
+        if stream:
+            return self.stream(*args, **kwargs)
+        else:
+            return self.invoke(*args, **kwargs)
+
+
+    def invoke_response(
         self,
         prompt : str,
         images: list = [],
@@ -259,7 +305,7 @@ class OpenAI_M():
         return response.choices[0].message.content
 
 
-    def stream(
+    def stream_response(
         self,
         prompt : str,
         images: list = [],

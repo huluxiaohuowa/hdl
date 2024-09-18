@@ -148,7 +148,7 @@ class OpenAI_M():
         self,
         prompt : str,
         images: list = [],
-        image_keys: tuple = ("image", "image"),
+        image_keys: tuple = ("image", "image", "image"),
         stop: list[str] | None = ["USER:", "ASSISTANT:"],
         model="default_model",
         stream: bool = True,
@@ -171,14 +171,19 @@ class OpenAI_M():
         content = [
             {"type": "text", "text": prompt},
         ]
+        if isinstance(image_keys, str):
+            image_keys = (image_keys, image_keys, image_keys)
+        else:
+            if len(image_keys) == 2:
+                image_keys = (image_keys[0], ) + image_keys
         if images:
             if isinstance(images, str):
                 images = [images]
             for img in images:
                 content.append({
                     "type": image_keys[0],
-                    image_keys[0]: {
-                        image_keys[1]: img
+                    image_keys[1]: {
+                        image_keys[2]: img
                     }
                 })
         else:

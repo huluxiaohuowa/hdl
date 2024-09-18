@@ -196,13 +196,13 @@ class OpenAI_M():
             model=model,
             **kwargs
         )
-        if stream:
+        if not stream:
+            return response.choices[0].message.content
+        else:
             for chunk in response:
                 content = chunk.choices[0].delta.content
                 if content:
                     yield content
-        else:
-            return response.choices[0].message.content
 
     def invoke(
         self,

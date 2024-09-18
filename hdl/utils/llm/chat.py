@@ -186,12 +186,13 @@ class OpenAI_M():
                 })
         else:
             content = prompt
+
         response = self.client.chat.completions.create(
             messages=[{
                 "role": "user",
                 "content": content
             }],
-            stream=False,
+            stream=stream,
             model=model,
             **kwargs
         )

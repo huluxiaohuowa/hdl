@@ -104,7 +104,7 @@ class OpenAI_M():
         self,
         model_path: str = "default_model",
         device: str='gpu',
-        generation_kwargs: dict = {},
+        generation_kwargs: dict = None,
         server_ip: str = "172.28.1.2",
         server_port: int = 8000,
         api_key: str = "dummy_key",
@@ -147,7 +147,7 @@ class OpenAI_M():
     def get_resp(
         self,
         prompt : str,
-        images: list = [],
+        images: list = None,
         image_keys: tuple = ("image", "image", "image"),
         stop: list[str] | None = ["USER:", "ASSISTANT:"],
         model="default_model",

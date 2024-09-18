@@ -98,6 +98,7 @@ def run_tool_with_kwargs(tool, func_kwargs):
     """
     return tool(**func_kwargs)
 
+
 class OpenAI_M():
     def __init__(
         self,
@@ -143,38 +144,46 @@ class OpenAI_M():
         if tool_desc is not None:
             self.tool_desc = self.tool_desc | tool_desc
 
-    def invoke(
+    def get_resp(
         self,
         prompt : str,
-        image_url: str = None,
+        images: list = [],
+        image_keys: tuple = ("image", "image"),
         stop: list[str] | None = ["USER:", "ASSISTANT:"],
-        # history: list = [],
         model="default_model",
+        stream: bool = True,
         **kwargs: t.Any,
-    ) -> str:
-        """Invoke the chatbot with a prompt and optional image URL.
+    ):
+        """Get response from chat completion model.
 
         Args:
-            prompt (str): The prompt to provide to the chatbot.
-            image_url (str, optional): The URL of the image to include in the chatbot response. Defaults to None.
-            stop (list[str], optional): List of strings that indicate the end of the conversation. Defaults to ["USER:", "ASSISTANT:"].
-            model (str, optional): The model to use for the chatbot. Defaults to "default_model".
-            **kwargs: Additional keyword arguments to pass to the chatbot.
+            prompt (str): The prompt text to generate a response for.
+            images (list, optional): List of image URLs to include in the prompt. Defaults to [].
+            image_keys (tuple, optional): Tuple containing keys for image data. Defaults to ("image", "image").
+            stop (list[str] | None, optional): List of strings to stop the conversation. Defaults to ["USER:", "ASSISTANT:"].
+            model (str, optional): The model to use for generating the response. Defaults to "default_model".
+            stream (bool, optional): Whether to stream the response or not. Defaults to True.
+            **kwargs: Additional keyword arguments to pass to the chat completion API.
+
+        Yields:
+            str: The generated response content.
 
         Returns:
-            str: The response message from the chatbot.
+            str: The generated response content if stream is False.
         """
         content = [
             {"type": "text", "text": prompt},
         ]
-        if image_url is not None:
-            image_content = {
-                "type": "image_url",
-                "image_url": {
-                    "url": image_url,
-                },
-            }
-            content.append(image_content)
+        if images:
+            if isinstance(images, str):
+                images = [images]
+            for img in images:
+                content.append({
+                    "type": image_keys[0],
+                    image_keys[0]: {
+                        image_keys[1]: img
+                    }
+                })
         else:
             content = prompt
         response = self.client.chat.completions.create(
@@ -186,56 +195,45 @@ class OpenAI_M():
             model=model,
             **kwargs
         )
-        return response.choices[0].message.content
+        if stream:
+            for chunk in response:
+                content = chunk.choices[0].delta.content
+                if content:
+                    yield content
+        else:
+            return response.choices[0].message.content
+
+    def invoke(
+        self,
+        *args,
+        **kwargs
+    ) -> str:
+        """Invoke the function with the given arguments and keyword arguments.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            str: The response obtained by calling the get_resp method with the provided arguments and keyword arguments.
+        """
+        return self.get_resp(*args, stream=False, **kwargs)
 
     def stream(
         self,
-        prompt : str,
-        image_url: str = None,
-        stop: list[str] | None = ["USER:", "ASSISTANT:"],
-        # history: list = [],
-        model="default_model",
-        **kwargs: t.Any,
+        *args,
+        **kwargs
     ):
-        """Generates text and potentially image completions based on the prompt provided.
+        """Stream data from the server.
 
         Args:
-            prompt (str): The text prompt to generate completions from.
-            image_url (str, optional): The URL of the image to be included in the completion. Defaults to None.
-            stop (list[str], optional): List of strings that indicate the end of the conversation. Defaults to ["USER:", "ASSISTANT:"].
-            model (str, optional): The model to use for completion generation. Defaults to "default_model".
-            **kwargs: Additional keyword arguments to pass to the completion generation API.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
 
-        Yields:
-            str: The generated completion content.
+        Returns:
+            Response from the server with streaming enabled.
         """
-        content = [
-            {"type": "text", "text": prompt},
-        ]
-        if image_url is not None:
-            image_content = {
-                "type": "image_url",
-                "image_url": {
-                    "url": image_url,
-                },
-            }
-            content.append(image_content)
-        else:
-            content = prompt
-        response = self.client.chat.completions.create(
-            messages=[{
-                "role": "user",
-                "content": content
-            }],
-            stream=True,
-            model=model,
-            **kwargs
-        )
-
-        for chunk in response:
-            content = chunk.choices[0].delta.content
-            if content:
-                yield content
+        return self.get_resp(*args, stream=True, **kwargs)
 
     def agent_response(
         self,

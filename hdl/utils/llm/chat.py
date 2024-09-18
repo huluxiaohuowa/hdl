@@ -172,10 +172,11 @@ class OpenAI_M():
             {"type": "text", "text": prompt},
         ]
         if isinstance(image_keys, str):
-            image_keys = (image_keys, image_keys, image_keys)
-        else:
-            if len(image_keys) == 2:
-                image_keys = (image_keys[0], ) + image_keys
+            image_keys = (image_keys,) * 3
+        elif len(image_keys) == 2:
+            image_keys = (image_keys[0],) + tuple(image_keys)
+        elif len(image_keys) == 1:
+            image_keys = (image_keys[0],) * 3
         if images:
             if isinstance(images, str):
                 images = [images]

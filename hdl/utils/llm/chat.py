@@ -148,7 +148,7 @@ class OpenAI_M():
         self,
         prompt : str,
         images: list = None,
-        image_keys: tuple = ("image", "image", "image"),
+        image_keys: tuple = ("image_url", "url"),
         stop: list[str] | None = ["USER:", "ASSISTANT:"],
         model="default_model",
         stream: bool = True,

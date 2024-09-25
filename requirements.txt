@@ -1,7 +1,6 @@
 beautifulsoup4
 openai
 tqdm
-sentence-transformers
 geopy
 timezonefinder
 pytz

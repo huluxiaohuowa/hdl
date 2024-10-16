@@ -435,10 +435,10 @@ class MMChatter():
             "-m", self.model_dir,
             "--mmproj", self.mmproj_dir,
             "--image", image,
-            "--temp", temp,
-            "--top-p", top_p,
-            "--top-k", top_k,
-            "--repeat-penalty", repeat_penalty,
+            "--temp", f"{temp}",
+            "--top-p", f"{top_p}",
+            "--top-k", f"{top_k}",
+            "--repeat-penalty", f"{repeat_penalty}",
             "-p", prompt
         ]
 

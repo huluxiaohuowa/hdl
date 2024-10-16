@@ -454,6 +454,6 @@ class MMChatter():
         output = result.stdout
 
         # Process the model's response by parsing the output
-        response = output.splitlines()[-1]  # Assuming the last line is the model's response
+        response = output.splitlines()[-1].strip('<assistant>')  # Assuming the last line is the model's response
 
         return response

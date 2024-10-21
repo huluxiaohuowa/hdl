@@ -39,8 +39,8 @@ def create_demo():
 if __name__ == "__main__":
     # 使用 argparse 处理命令行参数
     parser = argparse.ArgumentParser(description="Gradio LLM Chatbot")
-    parser.add_argument("--host", type=str, default="0.0.0.0", help="The host to launch the app on.")
-    parser.add_argument("--port", type=int, default=10077, help="The port to launch the app on.")
+    parser.add_argument("-H", "--host", type=str, default="0.0.0.0", help="The host to launch the app on.")  # 改为 -H
+    parser.add_argument("-P", "--port", type=int, default=10077, help="The port to launch the app on.")
     parser.add_argument("--llm-host", type=str, default="127.0.0.1", help="The LLM server IP.")
     parser.add_argument("--llm-port", type=int, default=22277, help="The LLM server port.")
     args = parser.parse_args()

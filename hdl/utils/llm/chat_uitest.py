@@ -45,10 +45,15 @@ if __name__ == "__main__":
     parser.add_argument("--llm_port", type=int, default=22277, help="The LLM server port.")
     args = parser.parse_args()
 
+    args_dict = {
+        key.replace("-", "_"): value
+        for key, value in vars(args).items()
+    }
+
     # 初始化连接到 LLM 服务器的接口，使用传入的 host 和 port
     llm = OpenAI_M(
-        server_ip=args.llm_host,
-        server_port=args.llm_port
+        server_ip=args_dict["llm_host"],
+        server_port=args_dict["llm_port"]
     )
 
     # 启动 Gradio 应用

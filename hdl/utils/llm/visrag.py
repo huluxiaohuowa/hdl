@@ -138,14 +138,14 @@ def downvote(knowledge_base, query, cache_dir):
         f.write(json.dumps(data, indent=4, ensure_ascii=False))
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="RAG-PDFQA Script")
-    parser.add_argument('--cache_dir', type=str, required=True, help='Cache directory path')
-    parser.add_argument('--device', type=str, default='cuda:0', help='Device for model inference')
-    parser.add_argument('--model_path', type=str, required=True, help='Path to the embedding model')
-    parser.add_argument('--llm_host', type=str, default='127.0.0.0', help='LLM server IP address')
-    parser.add_argument('--llm_port', type=int, default=22299, help='LLM server port')
-    parser.add_argument('--server_name', type=str, default='0.0.0.0', help='Gradio server name')
-    parser.add_argument('--server_port', type=int, default=10077, help='Gradio server port')
+    parser = argparse.ArgumentParser(description="MiniCPMV-RAG-PDFQA Script")
+    parser.add_argument('--cache-dir', dest='cache_dir', type=str, required=True, help='Cache directory path')
+    parser.add_argument('--device', dest='device', type=str, default='cuda:0', help='Device for model inference')
+    parser.add_argument('--model-path', dest='model_path', type=str, required=True, help='Path to the embedding model')
+    parser.add_argument('--llm-host', dest='llm_host', type=str, default='127.0.0.0', help='LLM server IP address')
+    parser.add_argument('--llm-port', dest='llm_port', type=int, default=22299, help='LLM server port')
+    parser.add_argument('--server-name', dest='server_name', type=str, default='0.0.0.0', help='Gradio server name')
+    parser.add_argument('--server-port', dest='server_port', type=int, default=10077, help='Gradio server port')
 
     args = parser.parse_args()
 
@@ -162,7 +162,7 @@ if __name__ == '__main__':
     )
 
     with gr.Blocks() as app:
-        gr.Markdown("# Vision Language Models Enable End-to-End RAG")
+        gr.Markdown("# MiniCPMV-RAG-PDFQA: Two Vision Language Models Enable End-to-End RAG")
 
         file_input = gr.File(type="binary", label="Step 1: Upload PDF")
         file_result = gr.Text(label="Knowledge Base ID")
@@ -181,7 +181,7 @@ if __name__ == '__main__':
                               _kwargs={'cache_dir': args.cache_dir, 'model': model, 'tokenizer': tokenizer})
 
         button = gr.Button("Answer Question")
-        gen_model_response = gr.Textbox(label="Model's Answer")
+        gen_model_response = gr.Textbox(label="MiniCPM-V-2.6's Answer")
 
         button.click(answer_question, inputs=[images_output, query_input], outputs=gen_model_response, _kwargs={'gen_model': gen_model})
 

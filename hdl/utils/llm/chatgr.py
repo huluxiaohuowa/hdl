@@ -9,7 +9,7 @@ def chat_with_llm(user_input, chat_history=[]):
 
     bot_message = ""  # Bot 消息初始化为空
     resp = llm.stream(
-        "你的身份是芯途异构(ICTrek)的人工智能小助手，由芯途异构公司研发，请回答如下问题：\n"
+        "你的身份是VIVIBIT人工智能小助手，由芯途异构公司研发，请回答如下问题，并保证回答所采用的语言与用户问题的语言保持一致：\n"
         + user_input
     )  # 获取流式响应
 

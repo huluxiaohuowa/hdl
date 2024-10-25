@@ -7,10 +7,12 @@ import gradio as gr
 import os
 import numpy as np
 import json
-import base64
-import io
+# import base64
+# import io
 from transformers import AutoModel, AutoTokenizer
-from hdl.utils.llm.chat import OpenAI_M
+
+from .chat import OpenAI_M
+from .vis import imgfile_to_base64
 
 def get_image_md5(img: Image.Image):
     img_byte_array = img.tobytes()
@@ -106,16 +108,17 @@ def retrieve_gradio(knowledge_base, query, topk, cache_dir=None, model=None, tok
 
     return images_topk
 
-def convert_image_to_base64(image):
-    """Convert a PIL Image to a base64 encoded string."""
-    buffered = io.BytesIO()
-    image.save(buffered, format="PNG")
-    image_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-    return image_base64
+# def convert_image_to_base64(image):
+#     """Convert a PIL Image to a base64 encoded string."""
+#     buffered = io.BytesIO()
+#     image.save(buffered, format="PNG")
+#     image_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+#     return image_base64
 
 def answer_question(images, question, gen_model):
     # Convert images to base64
-    images_base64 = [convert_image_to_base64(Image.open(image[0]).convert('RGB')) for image in images]
+    # images_base64 = [convert_image_to_base64(Image.open(image[0]).convert('RGB')) for image in images]
+    images_base64 = [imgfile_to_base64(image) for image in images]
 
     # Pass base64-encoded images to gen_model.chat
     answer = gen_model.chat(

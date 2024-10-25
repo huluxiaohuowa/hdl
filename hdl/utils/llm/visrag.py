@@ -118,7 +118,7 @@ def retrieve_gradio(knowledge_base, query, topk, cache_dir=None, model=None, tok
 def answer_question(images, question, gen_model):
     # Convert images to base64
     # images_base64 = [convert_image_to_base64(Image.open(image[0]).convert('RGB')) for image in images]
-    images_base64 = [imgfile_to_base64(image) for image in images]
+    images_base64 = [imgfile_to_base64(image[0]) for image in images]
 
     # Pass base64-encoded images to gen_model.chat
     answer = gen_model.chat(

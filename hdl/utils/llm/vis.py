@@ -371,9 +371,6 @@ class ImgHandler:
             conn = self.db_conn
         pipeline = conn.pipeline()
         for img_file, emb in tqdm(zip(sorted_imgs, img_feats)):
-            # 初始化 Redis，先使用 img 文件名作为 Key 和 Value，后续再更新为图片特征向量
-            # pipeline.json().set(img_file, "$", img_file)
-
             if img_file.startswith("data:"):
                 img_data = img_file
                 img_idx = f"pic-{str(uuid.uuid4())}"
@@ -388,32 +385,38 @@ class ImgHandler:
             }
             pipeline.json().set(img_idx, "$", emb_json)
             res = pipeline.execute()
-            # print('redis set:', res)
 
+        # 定义向量索引的schema
         schema = (
             VectorField(
-                "$.emb",  # 这是 JSON 中存储向量的路径
-                "FLAT",  # 使用 FLAT 索引类型
+                "$.emb",
+                "FLAT",
                 {
-                    "TYPE": "FLOAT32",  # 向量类型
-                    "DIM": self.num_vec_dim,  # 向量维度，必须与实际数据的维度一致
-                    "DISTANCE_METRIC": "COSINE",  # 余弦相似度作为距离度量
+                    "TYPE": "FLOAT32",
+                    "DIM": self.num_vec_dim,
+                    "DISTANCE_METRIC": "COSINE",
                 },
-                as_name="vector",  # 给这个字段定义一个别名，后续可以使用
+                as_name="vector",
             ),
         )
-        # vector_idx_name = "idx:pic_idx"
+        # 定义索引的配置
         definition = IndexDefinition(
             prefix=["pic-"],
             index_type=IndexType.JSON
         )
-        res = conn.ft(
-            self.pic_idx_name
-        ).create_index(
-            fields=schema,
-            definition=definition
-        )
-        print("create_index:", res)
+
+        # 检查索引是否已经存在
+        try:
+            conn.ft(self.pic_idx_name).info()  # 检查索引信息
+            print("Index already exists, skipping creation.")
+        except Exception:
+            # 如果索引不存在，创建新的索引
+            res = conn.ft(self.pic_idx_name).create_index(
+                fields=schema,
+                definition=definition
+            )
+            print("create_index:", res)
+
         if print_idx_info:
             print(self.pic_idx_info)
 

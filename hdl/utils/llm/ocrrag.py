@@ -208,8 +208,8 @@ if __name__ == '__main__':
         button = gr.Button("Answer Question")
         gen_model_response = gr.Textbox(label="MiniCPM-V-2.6's Answer", lines=10)
 
-        # Use answer_question_stream for streaming response
-        button.click(answer_question_stream,
+        # Use answer_question_stream for streaming response and pass gen_model
+        button.click(lambda images, query: answer_question_stream(images, query, gen_model),
                      inputs=[images_output, query_input],
                      outputs=gen_model_response)
 

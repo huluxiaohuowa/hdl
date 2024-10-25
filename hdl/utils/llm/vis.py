@@ -15,6 +15,7 @@ from redis.commands.search.indexDefinition import IndexDefinition, IndexType
 from hdl.jupyfuncs.show.pbar import tqdm
 from redis.commands.search.query import Query
 
+
 from ..database_tools.connect import conn_redis
 
 
@@ -89,6 +90,7 @@ def imgfile_to_base64(img_dir: str):
 
     return img_base64
 
+
 def imgbase64_to_pilimg(img_base64: str):
     """Converts a base64 encoded image to a PIL image.
 
@@ -105,6 +107,24 @@ def imgbase64_to_pilimg(img_base64: str):
         )
     )
     return img_pil
+
+
+def pilimg_to_base64(pilimg):
+    """Converts a PIL image to base64 format.
+
+    Args:
+        pilimg (PIL.Image): The PIL image to be converted.
+
+    Returns:
+        str: Base64 encoded image string.
+    """
+    buffered = BytesIO()
+    pilimg.save(buffered, format="PNG")
+    image_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    img_format = 'png'
+    mime_type = f"image/{img_format}"
+    img_base64 = f"data:{mime_type};base64,{image_base64}"
+    return img_base64
 
 
 class ImgHandler:

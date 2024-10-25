@@ -12,7 +12,7 @@ import json
 from transformers import AutoModel, AutoTokenizer
 
 from .chat import OpenAI_M
-from .vis import imgfile_to_base64
+from .vis import pilimg_to_base64
 
 def get_image_md5(img: Image.Image):
     img_byte_array = img.tobytes()
@@ -116,14 +116,35 @@ def retrieve_gradio(knowledge_base, query, topk, cache_dir=None, model=None, tok
 #     return image_base64
 
 def answer_question(images, question, gen_model):
-    # Convert images to base64
-    # images_base64 = [convert_image_to_base64(Image.open(image[0]).convert('RGB')) for image in images]
-    images_base64 = [imgfile_to_base64(image[0]) for image in images]
+    # Load images from the image paths in images[0]
+    pil_images = [Image.open(image[0]).convert('RGB') for image in images]
 
-    # Pass base64-encoded images to gen_model.chat
+    # Calculate the total size of the new image (for vertical concatenation)
+    widths, heights = zip(*(img.size for img in pil_images))
+
+    # Assuming vertical concatenation, so width is the max width, height is the sum of heights
+    total_width = max(widths)
+    total_height = sum(heights)
+
+    # Create a new blank image with the total width and height
+    new_image = Image.new('RGB', (total_width, total_height))
+
+    # Paste each image into the new image
+    y_offset = 0
+    for img in pil_images:
+        new_image.paste(img, (0, y_offset))
+        y_offset += img.height  # Move the offset down by the height of the image
+
+    # Optionally save or display the final concatenated image (for debugging)
+    # new_image.save('concatenated_image.png')
+
+    # Convert the concatenated image to base64
+    new_image_base64 = pilimg_to_base64(new_image)
+
+    # Call the model with the base64-encoded concatenated image
     answer = gen_model.chat(
         prompt=question,
-        images=images_base64,  # Use the base64 images
+        images=[new_image_base64],  # Use the concatenated image
         stream=False
     )
     return answer

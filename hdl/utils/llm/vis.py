@@ -4,6 +4,7 @@ import base64
 from io import BytesIO
 import requests
 import uuid
+import hashlib
 
 import torch
 import numpy as np
@@ -132,8 +133,8 @@ class ImgHandler:
     def __init__(
         self,
         model_path,
-        db_host,
-        db_port,
+        db_host = "127.0.0.1",
+        db_port = 8888,
         conn=None,
         model_name: str = None,
         device: str = "cpu",
@@ -353,7 +354,7 @@ class ImgHandler:
         conn=None,
         print_idx_info: bool = False,
     ):
-        """Save image features to a Redis database.
+        """Save image features to a Redis database, avoiding duplicates.
 
         Args:
             images (list): A list of image file paths.
@@ -370,6 +371,7 @@ class ImgHandler:
         if conn is None:
             conn = self.db_conn
         pipeline = conn.pipeline()
+
         for img_file, emb in tqdm(zip(sorted_imgs, img_feats)):
             if img_file.startswith("data:"):
                 img_data = img_file
@@ -378,13 +380,26 @@ class ImgHandler:
                 img_data = imgfile_to_base64(img_file)
                 img_idx = f"pic-{img_file}"
 
+            # 使用图片特征生成唯一哈希值
+            emb_hash = hashlib.sha256(emb.tobytes()).hexdigest()
+
+            # 检查该哈希值是否已存在，避免重复存储
+            if conn.exists(f"pic-hash-{emb_hash}"):
+                print(f"Image {img_file} already exists, skipping.")
+                continue
+
+            # 存储新图片的特征和数据
             emb = emb.astype(np.float32).tolist()
             emb_json = {
                 "emb": emb,
                 "data": img_data
             }
             pipeline.json().set(img_idx, "$", emb_json)
-            res = pipeline.execute()
+
+            # 将哈希值作为键存储，以便后续检查
+            pipeline.set(f"pic-hash-{emb_hash}", img_idx)
+
+        res = pipeline.execute()
 
         # 定义向量索引的schema
         schema = (

@@ -137,7 +137,7 @@ def answer_question_stream(images, question, gen_model):
         stream=True  # Enable streaming
     ):
         partial_answer_text += partial_answer
-        yield gr.update(value=partial_answer_text)
+        yield partial_answer_text  # Yield the updated partial answer
 
 def upvote(knowledge_base, query, cache_dir):
     target_cache_dir = os.path.join(cache_dir, knowledge_base)
@@ -210,9 +210,10 @@ if __name__ == '__main__':
         gen_model_response = gr.Textbox(label="MiniCPM-V-2.6's Answer", lines=10)
 
         # Use answer_question_stream for streaming response and pass gen_model
-        button.click(lambda images, query: answer_question_stream(images, query, gen_model),
+        button.click(answer_question_stream,
                     inputs=[images_output, query_input],
-                    outputs=gen_model_response)
+                    outputs=gen_model_response,
+                    stream=True)  # Enable stream here
 
         upvote_button = gr.Button("🤗 Upvote")
         downvote_button = gr.Button("🤣 Downvote")

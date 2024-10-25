@@ -198,7 +198,7 @@ if __name__ == '__main__':
     )
 
     with gr.Blocks() as app:
-        gr.Markdown("# MiniCPMV-RAG-PDFQA: Two Vision Language Models Enable End-to-End RAG")
+        gr.Markdown("# RAG-PDFQA: Two Vision Language Models Enable End-to-End RAG")
 
         file_input = gr.File(type="binary", label="Step 1: Upload PDF")
         file_result = gr.Text(label="Knowledge Base ID")
@@ -217,7 +217,7 @@ if __name__ == '__main__':
                               inputs=[kb_id_input, query_input, topk_input], outputs=images_output)
 
         button = gr.Button("Answer Question")
-        gen_model_response = gr.Textbox(label="MiniCPM-V-2.6's Answer")
+        gen_model_response = gr.Textbox(label="Answer")
 
         button.click(lambda images, question: answer_question(images, question, gen_model),
                      inputs=[images_output, query_input], outputs=gen_model_response)

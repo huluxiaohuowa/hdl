@@ -3,6 +3,7 @@ import json
 import base64
 from io import BytesIO
 import requests
+import uuid
 
 import torch
 import numpy as np
@@ -375,14 +376,17 @@ class ImgHandler:
 
             if img_file.startswith("data:"):
                 img_data = img_file
+                img_idx = f"pic-{str(uuid.uuid4())}"
             else:
                 img_data = imgfile_to_base64(img_file)
+                img_idx = f"pic-{img_file}"
+
             emb = emb.astype(np.float32).tolist()
             emb_json = {
                 "emb": emb,
                 "data": img_data
             }
-            pipeline.json().set(f"pic-{img_file}", "$", emb_json)
+            pipeline.json().set(img_idx, "$", emb_json)
             res = pipeline.execute()
             # print('redis set:', res)
 

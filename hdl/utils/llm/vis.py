@@ -372,10 +372,15 @@ class ImgHandler:
         for img_file, emb in tqdm(zip(sorted_imgs, img_feats)):
             # 初始化 Redis，先使用 img 文件名作为 Key 和 Value，后续再更新为图片特征向量
             # pipeline.json().set(img_file, "$", img_file)
+
+            if img_file.startswith("data:"):
+                img_data = img_file
+            else:
+                img_data = imgfile_to_base64(img_file)
             emb = emb.astype(np.float32).tolist()
             emb_json = {
                 "emb": emb,
-                "data": imgfile_to_base64(img_file)
+                "data": img_data
             }
             pipeline.json().set(f"pic-{img_file}", "$", emb_json)
             res = pipeline.execute()

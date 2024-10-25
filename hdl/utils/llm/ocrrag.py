@@ -129,14 +129,15 @@ def answer_question_stream(images, question, gen_model):
     # Convert the concatenated image to base64
     new_image_base64 = pilimg_to_base64(new_image)
 
-    # Call the model with the base64-encoded concatenated image and stream=True
+    # Stream the answer from the model
+    partial_answer_text = ""
     for partial_answer in gen_model.chat(
         prompt=question,
         images=[new_image_base64],  # Use the concatenated image
         stream=True  # Enable streaming
     ):
-        # Yield the partial answer as it comes in
-        yield partial_answer  # Stream the output to Gradio
+        partial_answer_text += partial_answer
+        yield gr.update(value=partial_answer_text)
 
 def upvote(knowledge_base, query, cache_dir):
     target_cache_dir = os.path.join(cache_dir, knowledge_base)
@@ -194,7 +195,7 @@ if __name__ == '__main__':
         process_button = gr.Button("Process PDF")
 
         process_button.click(lambda pdf: add_pdf_gradio(pdf, cache_dir=args.cache_dir, model=model, tokenizer=tokenizer),
-                             inputs=file_input, outputs=file_result)
+                            inputs=file_input, outputs=file_result)
 
         kb_id_input = gr.Text(label="Knowledge Base ID")
         query_input = gr.Text(label="Your Question")
@@ -203,15 +204,15 @@ if __name__ == '__main__':
         images_output = gr.Gallery(label="Retrieved Pages")
 
         retrieve_button.click(lambda kb, query, topk: retrieve_gradio(kb, query, topk, cache_dir=args.cache_dir, model=model, tokenizer=tokenizer),
-                              inputs=[kb_id_input, query_input, topk_input], outputs=images_output)
+                            inputs=[kb_id_input, query_input, topk_input], outputs=images_output)
 
         button = gr.Button("Answer Question")
         gen_model_response = gr.Textbox(label="MiniCPM-V-2.6's Answer", lines=10)
 
         # Use answer_question_stream for streaming response and pass gen_model
         button.click(lambda images, query: answer_question_stream(images, query, gen_model),
-                     inputs=[images_output, query_input],
-                     outputs=gen_model_response)
+                    inputs=[images_output, query_input],
+                    outputs=gen_model_response)
 
         upvote_button = gr.Button("🤗 Upvote")
         downvote_button = gr.Button("🤣 Downvote")
@@ -219,6 +220,6 @@ if __name__ == '__main__':
         upvote_button.click(lambda kb, query: upvote(kb, query, cache_dir=args.cache_dir),
                             inputs=[kb_id_input, query_input], outputs=None)
         downvote_button.click(lambda kb, query: downvote(kb, query, cache_dir=args.cache_dir),
-                              inputs=[kb_id_input, query_input], outputs=None)
+                            inputs=[kb_id_input, query_input], outputs=None)
 
-    app.launch(server_name=args.server_name, server_port=args.server_port)
+        app.launch(server_name=args.server_name, server_port=args.server_port)

@@ -23,11 +23,6 @@ from redis.commands.search.query import Query
 
 HF_HUB_PREFIX = "hf-hub:"
 
-import requests
-import base64
-from io import BytesIO
-from PIL import Image
-
 
 def imgurl_to_base64(image_url: str):
     """Converts an image from a URL to base64 format.

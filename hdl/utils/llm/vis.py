@@ -133,8 +133,6 @@ class ImgHandler:
     def __init__(
         self,
         model_path,
-        db_host = "127.0.0.1",
-        db_port = 8888,
         conn=None,
         model_name: str = None,
         device: str = "cpu",
@@ -160,9 +158,7 @@ class ImgHandler:
         self.model_path = model_path
         self.model_name = model_name
 
-        self.db_host = db_host
-        self.db_port = db_port
-        self._db_conn = None
+        self.db_conn = conn
         self.num_vec_dim = num_vec_dim
         self.pic_idx_name = "idx:pic_idx"
         if load_model:
@@ -204,17 +200,6 @@ class ImgHandler:
         self.tokenizer = open_clip.get_tokenizer(
             HF_HUB_PREFIX + self.model_path
         )
-
-    @property
-    def db_conn(self):
-        """Establishes a connection to Redis server if not already connected.
-
-            Returns:
-                Redis connection object: A connection to the Redis server.
-        """
-        if self._db_conn is None:
-            self._db_conn = conn_redis(self.db_host, self.db_port)
-        return self._db_conn
 
     def get_img_features(
         self,

@@ -18,14 +18,8 @@ from hdl.jupyfuncs.show.pbar import tqdm
 from redis.commands.search.query import Query
 
 
-from ..database_tools.connect import conn_redis
+# from ..database_tools.connect import conn_redis
 
-
-__all__ = [
-    "ImgHandler",
-    "imgfile_to_base64",
-    "imgbase64_to_pilimg"
-]
 
 HF_HUB_PREFIX = "hf-hub:"
 

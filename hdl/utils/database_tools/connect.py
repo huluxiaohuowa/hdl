@@ -28,14 +28,11 @@ def connect_by_infofile(info_file: str):
 #     conn.close()
 
 def conn_redis(
-    host: str,
-    port: int
+    **redis_args
 ):
     import redis
     client = redis.Redis(
-        host=host,
-        port=port,
-        decode_responses=True
+        **redis_args
     )
     res = client.ping()
     print(res)

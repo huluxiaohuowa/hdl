@@ -143,6 +143,7 @@ class ImgHandler:
             None
         """
 
+        self.device_str = device
         self.device = torch.device(device)
         self.model_path = model_path
         self.model_name = model_name
@@ -222,7 +223,7 @@ class ImgHandler:
                 )
 
 
-        with torch.no_grad(), torch.amp.autocast("cuda"):
+        with torch.no_grad(), torch.amp.autocast(self.device_str):
             imgs = torch.stack([
                 self.preprocess_val(image).to(self.device)
                 for image in images_fixed
@@ -252,7 +253,7 @@ class ImgHandler:
         Example:
             get_text_features(["text1", "text2"], to_numpy=True)
         """
-        with torch.no_grad(), torch.amp.autocast("cuda"):
+        with torch.no_grad(), torch.amp.autocast(self.device_str):
             txts = self.tokenizer(
                 texts,
                 context_length=self.model.context_length
@@ -284,7 +285,7 @@ class ImgHandler:
         Returns:
             torch.Tensor or numpy.ndarray: Text-image association probabilities.
         """
-        with torch.no_grad(), torch.amp.autocast("cuda"):
+        with torch.no_grad(), torch.amp.autocast(self.device_str):
             image_features = self.get_img_features(images, **kwargs)
             text_features = self.get_text_features(texts, **kwargs)
             text_probs = (100.0 * image_features @ text_features.T)
@@ -313,7 +314,7 @@ class ImgHandler:
             Returns:
                 torch.Tensor or numpy.ndarray: Similarity scores between the two sets of images.
         """
-        with torch.no_grad(), torch.amp.autocast("cuda"):
+        with torch.no_grad(), torch.amp.autocast(self.device_str):
             img1_feats = self.get_img_features(images1, **kwargs)
             img2_feats = self.get_img_features(images2, **kwargs)
             sims = img1_feats @ img2_feats.T

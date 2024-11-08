@@ -10,8 +10,10 @@ import torch
 import numpy as np
 from PIL import Image
 # from transformers import ChineseCLIPProcessor, ChineseCLIPModel
+from transformers import AutoModel
+from transformers import AutoTokenizer
 import open_clip
-import natsort
+# import natsort
 from redis.commands.search.field import VectorField
 from redis.commands.search.indexDefinition import IndexDefinition, IndexType
 from hdl.jupyfuncs.show.pbar import tqdm
@@ -96,7 +98,7 @@ def imgbase64_to_pilimg(img_base64: str):
         BytesIO(
             base64.b64decode(img_base64.split(",")[-1])
         )
-    )
+    ).convert('RGB')
     return img_pil
 
 
@@ -124,6 +126,7 @@ class ImgHandler:
         model_path,
         conn=None,
         model_name: str = None,
+        model_type: str = "openclip",
         device: str = "cpu",
         num_vec_dim: int = None,
         load_model: bool = True,
@@ -147,6 +150,7 @@ class ImgHandler:
         self.device = torch.device(device)
         self.model_path = model_path
         self.model_name = model_name
+        self.model_type = model_type
 
         self.db_conn = conn
         self.num_vec_dim = num_vec_dim
@@ -164,32 +168,46 @@ class ImgHandler:
         Returns:
             None
         """
-        ckpt_file = (
-            Path(self.model_path) / Path("open_clip_pytorch_model.bin")
-        ).as_posix()
-        self.open_clip_cfg = json.load(
-            open(Path(self.model_path) / Path("open_clip_config.json"))
-        )
 
-        if self.model_name is None:
-            self.model_name = (
-                self.open_clip_cfg['model_cfg']['text_cfg']['hf_tokenizer_name']
-                .split('/')[-1]
+        if self.model_type == "cpm":
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.model_path,
+                trust_remote_code=True
+            )
+            self.model = AutoModel.from_pretrained(
+                self.model_path,
+                trust_remote_code=True
+            )
+            self.model.to(self.device)
+            self.num_vec_dim = 2304
+
+        elif self.model_type == "openclip":
+            ckpt_file = (
+                Path(self.model_path) / Path("open_clip_pytorch_model.bin")
+            ).as_posix()
+            self.open_clip_cfg = json.load(
+                open(Path(self.model_path) / Path("open_clip_config.json"))
             )
 
-        self.model, self.preprocess_train, self.preprocess_val = (
-            open_clip.create_model_and_transforms(
-                model_name=self.model_name,
-                pretrained=ckpt_file,
-                device=self.device,
-                # precision=precision
+            if self.model_name is None:
+                self.model_name = (
+                    self.open_clip_cfg['model_cfg']['text_cfg']['hf_tokenizer_name']
+                    .split('/')[-1]
+                )
+
+            self.model, self.preprocess_train, self.preprocess_val = (
+                open_clip.create_model_and_transforms(
+                    model_name=self.model_name,
+                    pretrained=ckpt_file,
+                    device=self.device,
+                    # precision=precision
+                )
             )
-        )
-        if self.num_vec_dim is None:
-            self.num_vec_dim = self.open_clip_cfg["model_cfg"]["embed_dim"]
-        self.tokenizer = open_clip.get_tokenizer(
-            HF_HUB_PREFIX + self.model_path
-        )
+            if self.num_vec_dim is None:
+                self.num_vec_dim = self.open_clip_cfg["model_cfg"]["embed_dim"]
+            self.tokenizer = open_clip.get_tokenizer(
+                HF_HUB_PREFIX + self.model_path
+            )
 
     def get_img_features(
         self,
@@ -222,16 +240,24 @@ class ImgHandler:
                     f"Not supported image type for {type(img)}"
                 )
 
+        if self.model_type == "cpm":
+            with torch.no_grad():
+                img_features = self.model(
+                    text=[""] * len(images_fixed),
+                    image=images_fixed,
+                    tokenizer=self.tokenizer
+                ).reps
 
-        with torch.no_grad(), torch.amp.autocast(self.device_str):
-            imgs = torch.stack([
-                self.preprocess_val(image).to(self.device)
-                for image in images_fixed
-            ])
-            img_features = self.model.encode_image(imgs, **kwargs)
-            img_features /= img_features.norm(dim=-1, keepdim=True)
-            if to_numpy:
-                img_features = img_features.cpu().numpy()
+        if self.model_type == "openclip":
+            with torch.no_grad(), torch.amp.autocast(self.device_str):
+                imgs = torch.stack([
+                    self.preprocess_val(image).to(self.device)
+                    for image in images_fixed
+                ])
+                img_features = self.model.encode_image(imgs, **kwargs)
+                img_features /= img_features.norm(dim=-1, keepdim=True)
+        if to_numpy:
+            img_features = img_features.cpu().numpy()
         return img_features
 
     def get_text_features(
@@ -253,17 +279,25 @@ class ImgHandler:
         Example:
             get_text_features(["text1", "text2"], to_numpy=True)
         """
-        with torch.no_grad(), torch.amp.autocast(self.device_str):
-            txts = self.tokenizer(
-                texts,
-                context_length=self.model.context_length
-            ).to(self.device)
-            txt_features = self.model.encode_text(txts, **kwargs)
-            txt_features /= txt_features.norm(dim=-1, keepdim=True)
-            if to_numpy:
-                txt_features = txt_features.cpu().numpy()
-        return txt_features
 
+        if self.model_type == "cpm":
+            with torch.no_grad():
+                txt_features = self.model(
+                    text=texts,
+                    image=[None] * len(texts),
+                    tokenizer=self.tokenizer
+                ).reps
+        elif self.model_type == "openclip":
+            with torch.no_grad(), torch.amp.autocast(self.device_str):
+                txts = self.tokenizer(
+                    texts,
+                    context_length=self.model.context_length
+                ).to(self.device)
+                txt_features = self.model.encode_text(txts, **kwargs)
+                txt_features /= txt_features.norm(dim=-1, keepdim=True)
+        if to_numpy:
+            txt_features = txt_features.cpu().numpy()
+        return txt_features
 
     def get_text_img_probs(
         self,

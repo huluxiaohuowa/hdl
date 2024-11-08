@@ -34,6 +34,17 @@ def chat_with_llm(user_input, chat_history=[]):
 
 # 构建 Gradio 界面
 def create_demo():
+    """
+    Creates a Gradio demo interface for a chatbot application.
+    The interface consists of:
+    - A chat history display at the top of the page.
+    - A user input textbox and a send button at the bottom of the page.
+    The send button and the enter key are both bound to the `chat_with_llm` function,
+    which handles sending the user's message and updating the chat history.
+    Returns:
+        gr.Blocks: The Gradio Blocks object representing the demo interface.
+    """
+
     with gr.Blocks() as demo:
         chat_history = gr.State([])  # 存储聊天历史
         output = gr.Chatbot(label="Chat History")  # 聊天记录在页面顶端
@@ -73,3 +84,5 @@ if __name__ == "__main__":
     # 启动 Gradio 应用
     demo = create_demo()
     demo.launch(server_name=args.host, server_port=args.port)
+
+

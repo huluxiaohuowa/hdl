@@ -121,6 +121,44 @@ def pilimg_to_base64(pilimg):
 
 
 class ImgHandler:
+    """
+    ImgHandler is a class for handling image processing tasks using pretrained models.
+    Attributes:
+        device_str (str): The device string (e.g., "cpu" or "cuda").
+        device (torch.device): The device to run the model on.
+        model_path (str): The path to the pretrained model.
+        model_name (str): The name of the model.
+        model_type (str): The type of the model (e.g., "openclip" or "cpm").
+        db_conn: The database connection object.
+        num_vec_dim (int): The number of vector dimensions.
+        pic_idx_name (str): The name of the picture index.
+        open_clip_cfg (dict): The configuration for the OpenCLIP model.
+        model: The pretrained model.
+        preprocess_train: The preprocessing function for training data.
+        preprocess_val: The preprocessing function for validation data.
+        tokenizer: The tokenizer for the model.
+    Methods:
+        __init__(self, model_path, conn=None, model_name: str = None, model_type: str = "openclip", device: str = "cpu", num_vec_dim: int = None, load_model: bool = True) -> None:
+            Initializes the ImgHandler class with the specified parameters.
+        load_model(self):
+            Loads the pretrained model and related configurations.
+        get_img_features(self, images, to_numpy=False, **kwargs):
+            Gets image features using a pretrained model.
+        get_text_features(self, texts, to_numpy=False, **kwargs):
+            Gets text features from the input texts.
+        get_text_img_probs(self, texts, images, probs=False, to_numpy=False, **kwargs):
+            Gets the probabilities of text-image associations.
+        get_pics_sims(self, images1, images2, to_numpy=False, **kwargs):
+            Calculates similarity scores between two sets of images.
+        vec_pics_todb(self, images: list[str], conn=None, print_idx_info=False):
+            Saves image features to a Redis database, avoiding duplicates.
+        get_pic_idx_info(self, conn=None):
+            Gets information about the picture index in the Redis database.
+        emb_search(self, emb_query, num_max=3, extra_params=None, conn=None):
+            Searches for similar embeddings in the database.
+        img_search(self, img, num_max=3, extra_params=None, conn=None):
+            Searches for similar images in the database based on the input image.
+        """
     def __init__(
         self,
         model_path,
@@ -131,21 +169,19 @@ class ImgHandler:
         num_vec_dim: int = None,
         load_model: bool = True,
     ) -> None:
-        """Initializes the class with the provided parameters.
-
+        """
+        Initializes the visualization utility.
         Args:
-            model_path (str): Path to the model file.
-            db_host (str): Hostname of the database.
-            db_port (int): Port number of the database.
+            model_path (str): Path to the model.
+            conn (optional): Database connection object. Defaults to None.
             model_name (str, optional): Name of the model. Defaults to None.
+            model_type (str, optional): Type of the model. Defaults to "openclip".
             device (str, optional): Device to run the model on. Defaults to "cpu".
             num_vec_dim (int, optional): Number of vector dimensions. Defaults to None.
-            load_model (bool, optional): Whether to load the model. Defaults to True.
-
+            load_model (bool, optional): Flag to load the model immediately. Defaults to True.
         Returns:
             None
         """
-
         self.device_str = device
         self.device = torch.device(device)
         self.model_path = model_path
@@ -159,15 +195,32 @@ class ImgHandler:
             self.load_model()
 
     def load_model(self):
-        """Load the OpenCLIP model and related configurations.
-
-        This function loads the OpenCLIP model from the specified model path
-        and initializes the necessary components such as the model,
-        preprocessors for training and validation data, tokenizer, etc.
-
-        Returns:
-            None
         """
+        Loads the model and tokenizer based on the specified model type.
+        This method supports loading two types of models: "cpm" and "openclip".
+        For "cpm":
+            - Loads the tokenizer and model using `AutoTokenizer` and `AutoModel` from the Hugging Face library.
+            - Sets the model to the specified device.
+            - Sets the number of vector dimensions to 2304.
+        For "openclip":
+            - Loads the model checkpoint and configuration from the specified path.
+            - Sets the model name if not already specified.
+            - Creates the model and preprocessing transforms using `open_clip.create_model_and_transforms`.
+            - Sets the number of vector dimensions based on the configuration if not already specified.
+            - Loads the tokenizer using `open_clip.get_tokenizer`.
+        Attributes:
+            model_type (str): The type of the model to load ("cpm" or "openclip").
+            model_path (str): The path to the model files.
+            device (str): The device to load the model onto (e.g., "cpu" or "cuda").
+            model_name (str, optional): The name of the model (used for "openclip" type).
+            num_vec_dim (int, optional): The number of vector dimensions (used for "openclip" type).
+            tokenizer: The tokenizer for the model.
+            model: The loaded model.
+            preprocess_train: The preprocessing transform for training (used for "openclip" type).
+            preprocess_val: The preprocessing transform for validation (used for "openclip" type).
+            open_clip_cfg (dict): The configuration for the "openclip" model.
+        """
+
 
         if self.model_type == "cpm":
             self.tokenizer = AutoTokenizer.from_pretrained(

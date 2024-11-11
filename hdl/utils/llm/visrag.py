@@ -22,8 +22,20 @@ def get_image_md5(img: Image.Image):
     return hex_digest
 
 def calculate_md5_from_binary(binary_data):
+    """
+    计算给定二进制数据的MD5哈希值。
+
+    参数:
+    binary_data (bytes): 需要计算MD5的二进制数据。
+
+    返回:
+    str: 二进制数据的MD5哈希值的十六进制表示。
+    """
+    # 初始化MD5哈希对象
     hash_md5 = hashlib.md5()
+    # 更新哈希对象以计算二进制数据的MD5
     hash_md5.update(binary_data)
+    # 返回计算出的MD5哈希值的十六进制表示
     return hash_md5.hexdigest()
 
 def add_pdf_gradio(pdf_file_binary, progress=gr.Progress(), cache_dir=None, model=None, tokenizer=None):

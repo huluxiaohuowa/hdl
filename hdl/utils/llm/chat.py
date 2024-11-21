@@ -285,11 +285,19 @@ class OpenAI_M():
             tool_result = str(self.get_tool_result(prompt, **kwargs))
             prompt_final = "根据上下文回答最后的用户问题：\n上下文信息：\n"
             prompt_final += tool_result
-            prompt_final += f"\n用户的问题：\n{prompt}"
+            # prompt_final += f"\n用户的问题：\n{prompt}"
             if stream:
-                return self.stream(prompt_final, **kwargs)
+                return self.stream(
+                    prompt=prompt,
+                    sys_info=prompt_final,
+                    **kwargs
+                )
             else:
-                return self.invoke(prompt_final, **kwargs)
+                return self.invoke(
+                    prompt=prompt,
+                    sys_info=prompt_final,
+                    **kwargs
+                )
 
     def get_decision(
         self, prompt: str,

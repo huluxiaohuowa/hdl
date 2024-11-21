@@ -308,8 +308,13 @@ class OpenAI_M():
         prompt_final = fn_template
         for tool in self.tools:
             prompt_final += self.tool_desc.get(tool.__name__, "")
-        prompt_final += f"\n用户的问题：\n{prompt}"
-        decision_dict_str = self.invoke(prompt_final, **kwargs)
+        # prompt_final += f"\n用户的问题：\n{prompt}"
+
+        decision_dict_str = self.invoke(
+            prompt=prompt,
+            sys_info=prompt_final,
+            **kwargs
+        )
         print(decision_dict_str)
         return decision_dict_str
 

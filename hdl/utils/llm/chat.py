@@ -279,6 +279,7 @@ class OpenAI_M():
         '''
         """
         decision_dict = self.get_decision(prompt, **kwargs)
+        decision_dict = json.loads(decision_dict)
         if decision_dict.get("function_name", None) is None:
             return self.stream(prompt, **kwargs)
         else:

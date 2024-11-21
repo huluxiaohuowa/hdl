@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import math
 
 def execute_code(code):
     """
@@ -37,4 +38,27 @@ def execute_code(code):
         return "Error: Code execution timed out"
     except Exception as e:
         # Return the exception information for other exceptions
+        return f"Error: {str(e)}"
+
+
+def calculate(expression):
+    """
+    Calculates the result of a mathematical expression.
+
+    This function evaluates a mathematical expression string passed as an argument and returns the result.
+    In order to prevent security risks, the use of built-in functions is restricted during evaluation,
+    allowing only the 'math' module to be accessed. If an exception occurs during evaluation,
+    it returns the corresponding error message.
+
+    Parameters:
+    expression (str): The mathematical expression to calculate.
+
+    Returns:
+    The result of the calculation or an error message if an exception occurs.
+    """
+    try:
+        # Evaluate the expression with restricted built-in functions and access to the math module
+        return eval(expression, {"__builtins__": None}, {"math": math})
+    except Exception as e:
+        # Return the error message if an exception occurs
         return f"Error: {str(e)}"

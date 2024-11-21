@@ -52,3 +52,45 @@ def web_search_text(
             except Exception as e:
                 print(f"{str(e)}: 从{result['href']}未搜索（获取）到相关内容。")
     return result_str
+
+
+def fetch_baidu_results(query, max_n_links=3):
+    """
+    模拟百度搜索，提取前三个搜索结果的网页文字内容并拼接返回。
+
+    :param query: str 要搜索的文本
+    :return: str 提取的网页内容拼接字符串
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    # 百度搜索 URL
+    search_url = 'https://www.baidu.com/s'
+    params = {'wd': query}
+
+    # 发送搜索请求
+    response = requests.get(search_url, headers=headers, params=params)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    # 提取前三个搜索结果链接
+    links = []
+    for link_tag in soup.select('.t a')[:max_n_links]:
+        link = link_tag.get('href')
+        if link:
+            links.append(link)
+
+    # 抓取每个链接的网页内容
+    text_content = []
+    for link in links:
+        try:
+            page_response = requests.get(link, headers=headers, timeout=10)
+            page_response.raise_for_status()
+            page_soup = BeautifulSoup(page_response.text, 'html.parser')
+            text = page_soup.get_text(separator='\n', strip=True)
+            text_content.append(text)
+        except requests.RequestException as e:
+            print(f"Failed to fetch {link}: {e}")
+
+    # 返回拼接的文本内容
+    return '\n'.join(text_content)

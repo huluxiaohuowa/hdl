@@ -143,6 +143,7 @@ class OpenAI_M():
     def get_resp(
         self,
         prompt : str,
+        sys_info: str = None,
         images: list = None,
         image_keys: tuple = ("image_url", "url"),
         stop: list[str] | None = ["USER:", "ASSISTANT:"],
@@ -164,6 +165,7 @@ class OpenAI_M():
         Returns:
             dict: The response from the chatbot.
         """
+
         content = [
             {"type": "text", "text": prompt},
         ]
@@ -186,11 +188,19 @@ class OpenAI_M():
         else:
             content = prompt
 
+        messages = []
+        if sys_info:
+            messages.append({
+                "role": "system",
+                "content": sys_info
+            })
+        messages.append({
+            "role": "user",
+            "content": content
+        })
+
         response = self.client.chat.completions.create(
-            messages=[{
-                "role": "user",
-                "content": content
-            }],
+            messages=messages,
             stream=stream,
             model=model,
             **kwargs

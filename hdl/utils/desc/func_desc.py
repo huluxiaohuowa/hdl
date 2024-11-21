@@ -52,5 +52,21 @@ FN_DESC = {
 }
 
 """,
+    "execute_code(code)": """
+## 函数名：execute_code,
+描述：当用户明确要求执行一段代码时，调用此工具，执行这段代码，返回执行结果。
+触发条件：用户要求执行一段代码
+参数：
+# code (str): 用户要求执行的代码
+返回值 (str): 执行结果
+需要返回的json
+{
+    "function_name": "execute_code",
+    "params":
+        {
+            "code": <code>
+        }
+}
+""",
     "default": None
 }

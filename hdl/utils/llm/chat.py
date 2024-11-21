@@ -1,5 +1,6 @@
 import typing as t
 import asyncio
+import os
 from concurrent.futures import ProcessPoolExecutor
 import subprocess
 
@@ -109,37 +110,31 @@ class OpenAI_M():
         server_ip: str = "172.28.1.2",
         server_port: int = 8000,
         api_key: str = "dummy_key",
+        use_groq: bool = False,
+        groq_api_key: str = None,
         tools: list = None,
         tool_desc: dict = None,
         *args,
         **kwargs
     ):
-        """Initialize the OpenAI client with the specified parameters.
-
-        Args:
-            model_path (str): Path to the model (default is "default_model").
-            device (str): Device to use (default is 'gpu').
-            generation_kwargs (dict): Additional generation arguments (default is an empty dictionary).
-            server_ip (str): IP address of the server (default is "172.28.1.2").
-            server_port (int): Port of the server (default is 8000).
-            api_key (str): API key for authentication (default is "dummy_key").
-            tools (list): List of tools.
-            tool_desc (dict): Description of tools.
-
-        Raises:
-            ValueError: If an invalid argument is provided.
-        """
         # self.model_path = model_path
         self.server_ip = server_ip
         self.server_port = server_port
         self.base_url = f"http://{self.server_ip}:{str(self.server_port)}/v1"
         self.api_key = api_key
-        self.client = OpenAI(
-            base_url=self.base_url,
-            api_key=self.api_key,
-            *args,
-            **kwargs
-        )
+        self.use_groq = use_groq
+        if use_groq:
+            import groq
+            self.client = groq.Groq(
+                api_key=os.getenv("GROQ_API_KEY", groq_api_key)
+            )
+        else:
+            self.client = OpenAI(
+                base_url=self.base_url,
+                api_key=self.api_key,
+                *args,
+                **kwargs
+            )
         self.tools = tools
         self.tool_desc = FN_DESC
         if tool_desc is not None:

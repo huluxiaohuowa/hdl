@@ -158,27 +158,72 @@ class OpenAI_M():
         if not self.cot_desc:
             self.cot_desc = COT_TEMPLATE
 
-    def get_thought_chain(
+    def cot(
         self,
         prompt,
+        max_step: int = 30,
         **kwargs
     ):
+        """_summary_
+
+        Args:
+            prompt (_type_): _description_
+            max_step (int, optional): _description_. Defaults to 30.
+
+        Returns:
+            _type_: _description_
+        """
+        # 初始化当前信息为空字符串，用于累积后续的思考步骤和用户问题
+        current_info = ""
+        # 初始化步数为0，用于控制最大思考次数
+        n_steps = 0
+
+        # 初始化步骤列表，用于记录每一步的思考过程
         steps = []
-        total_thinking_time = 0
-        is_final: bool = False
+
+        # 进入思考循环，直到找到答案或达到最大步数
         while True:
-            yield {
-                "type": "step",
-                "data": steps,
-                "extra": None
-            }
-            if is_final:
-                break
-        yield {
-            "type": "final",
-            "data": steps,
-            "total_time": total_thinking_time
-        }
+            # 增加步数计数
+            n_steps += 1
+            # 检查是否达到最大步数，如果是，则退出循环并返回默认答案
+            if n_steps >= max_step:
+                print("Max step reached!")
+                return "Sorry, I can't think of a better answer."
+
+            # 调用思考函数，传入当前信息和用户问题，获取下一步思考的结果
+            resp = self.invoke(
+                current_info + "用户问题：" + prompt,
+                sys_info=COT_TEMPLATE + self.tool_info,
+                assis_info = "好的，我将根据用户的问题和信息给出当前需要进行的操作或最终答案"
+            )
+
+            try:
+                # 将思考结果解析为JSON格式，以便后续处理
+                step_json = json.loads(resp)
+                # 将当前思考步骤添加到步骤列表中
+                steps.append(step_json)
+                # 如果思考步骤中标记为停止思考，则打印所有步骤并返回最终答案
+                if step_json["stop_thinking"]:
+                    print(steps)
+                    return step_json["content"]
+                else:
+                    # 如果思考步骤中包含使用工具的指示，则构造工具提示并调用agent_response方法
+                    if 'tool' in step_json:
+                        tool_prompt = step_json["tool"] + step_json["title"] + step_json["content"]
+                        tool_resp = self.agent_response(
+                            tool_prompt,
+                            stream=False,
+                            **kwargs
+                        )
+                        # 将工具返回的信息累积到当前信息中
+                        current_info += tool_resp
+                    else:
+                        # 如果不使用工具，将当前思考步骤的标题累积到当前信息中
+                        current_info += step_json["title"]
+            except Exception as e:
+                # 捕获异常并打印，然后继续下一轮思考
+                print(e)
+                continue
 
     def get_resp(
         self,
@@ -192,30 +237,28 @@ class OpenAI_M():
         stream: bool = True,
         **kwargs: t.Any,
     ):
-        """
-        获取响应函数。构造并发送一个聊天请求，以获取模型的响应。
+        """Prepare and send a request to the chat model, and return the model's response.
 
-        参数:
-        - prompt: 用户的输入文本。
-        - sys_info: 系统信息，用于提供给模型作为上下文。
-        - assis_info: 助手信息，用于在用户输入后提供给模型。
-        - images: 图像列表，用于提供给模型作为输入的一部分。
-        - image_keys: 图像键的元组，用于指定图像的类型和位置。
-        - stop: 停止序列，用于指示模型在生成文本时应停止的序列。
-        - model: 使用的模型名称。
-        - stream: 是否以流式传输方式接收响应。
-        - **kwargs: 其他传递给模型的参数。
+        Args:
+            prompt (str): The user's input text.
+            sys_info (str, optional): System information, if any. Defaults to None.
+            assis_info (str, optional): Assistant information, if any. Defaults to None.
+            images (list, optional): List of images to send with the request, if any. Defaults to None.
+            image_keys (tuple, optional): Tuple containing the keys for image information. Defaults to ("image_url", "url").
+            stop (_type_, optional): List of stop sequences for the model. Defaults to ["USER:", "ASSISTANT:"].
+            model (str, optional): The name of the model to use. Defaults to "default_model".
+            stream (bool, optional): Whether to use streaming mode for the response. Defaults to True.
 
-        返回:
-        - response: 模型的响应。
+        Returns:
+            _type_: The response object from the model.
         """
 
-        # 初始化内容列表，至少包含用户的文本输入
+        # Initialize the content list with at least the user's text input
         content = [
             {"type": "text", "text": prompt},
         ]
 
-        # 根据image_keys的长度，调整其为三元组形式
+        # Adjust the image_keys to be a tuple of length 3 based on its current length
         if isinstance(image_keys, str):
             image_keys = (image_keys,) * 3
         elif len(image_keys) == 2:
@@ -223,7 +266,7 @@ class OpenAI_M():
         elif len(image_keys) == 1:
             image_keys = (image_keys[0],) * 3
 
-        # 如果提供了图像，将其添加到内容列表中
+        # If images are provided, append them to the content list
         if images:
             if isinstance(images, str):
                 images = [images]
@@ -235,10 +278,10 @@ class OpenAI_M():
                     }
                 })
         else:
-            # 如果没有提供图像，内容仅包含提示文本
+            # If no images are provided, content is simply the prompt text
             content = prompt
 
-        # 初始化消息列表，首先添加系统信息（如果提供）
+        # Initialize the messages list and add system information if provided
         messages = []
         if sys_info:
             messages.append({
@@ -246,20 +289,20 @@ class OpenAI_M():
                 "content": sys_info
             })
 
-        # 添加用户输入作为消息
+        # Add the user's input as a message
         messages.append({
             "role": "user",
             "content": content
         })
 
-        # 如果提供了助手信息，将其添加到消息列表中
+        # Add assistant information to the messages list if provided
         if assis_info:
             messages.append({
                 "role": "assistant",
                 "content": assis_info
             })
 
-        # 调用模型生成响应
+        # Call the model to generate a response
         response = self.client.chat.completions.create(
             messages=messages,
             stream=stream,
@@ -267,7 +310,7 @@ class OpenAI_M():
             **kwargs
         )
 
-        # 返回模型的响应
+        # Return the model's response
         return response
 
     def invoke(

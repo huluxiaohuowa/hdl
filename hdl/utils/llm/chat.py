@@ -200,11 +200,12 @@ class OpenAI_M():
             try:
                 # 将思考结果解析为JSON格式，以便后续处理
                 step_json = json.loads(resp)
+                print(step_json)
                 # 将当前思考步骤添加到步骤列表中
                 steps.append(step_json)
                 # 如果思考步骤中标记为停止思考，则打印所有步骤并返回最终答案
                 if step_json["stop_thinking"]:
-                    print(steps)
+                    # print(steps)
                     return step_json["content"]
                 else:
                     # 如果思考步骤中包含使用工具的指示，则构造工具提示并调用agent_response方法

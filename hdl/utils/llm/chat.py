@@ -140,10 +140,33 @@ class OpenAI_M():
         if tool_desc is not None:
             self.tool_desc = self.tool_desc | tool_desc
 
+    def get_thought_chain(
+        self,
+        prompt,
+        **kwargs
+    ):
+        steps = []
+        total_thinking_time = 0
+        is_final: bool = False
+        while True:
+            yield {
+                "type": "step",
+                "data": steps,
+                "extra": None
+            }
+            if is_final:
+                break
+        yield {
+            "type": "final",
+            "data": steps,
+            "total_time": total_thinking_time
+        }
+
     def get_resp(
         self,
         prompt : str,
         sys_info: str = None,
+        assis_info: str = None,
         images: list = None,
         image_keys: tuple = ("image_url", "url"),
         stop: list[str] | None = ["USER:", "ASSISTANT:"],
@@ -198,6 +221,11 @@ class OpenAI_M():
             "role": "user",
             "content": content
         })
+        if assis_info:
+            messages.append({
+                "role": "assistant",
+                "content": assis_info
+            })
 
         response = self.client.chat.completions.create(
             messages=messages,

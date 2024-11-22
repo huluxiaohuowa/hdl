@@ -1,4 +1,5 @@
-from duckduckgo_search import DDGS
+import os
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -15,6 +16,7 @@ def web_search_text(
     Returns:
         str: Text retrieved from the web search results.
     """
+    from duckduckgo_search import DDGS
     if max_results < 3:
         max_results = 3
     elif max_results > 5:
@@ -94,3 +96,52 @@ def fetch_baidu_results(query, max_n_links=3):
 
     # 返回拼接的文本内容
     return '\n'.join(text_content)
+
+
+def wolfram_alpha_calculate(query):
+    """
+    This function sends a query to Wolfram Alpha and returns the calculation result.
+
+    Parameters:
+    query (str): The query string to send to Wolfram Alpha.
+
+    Returns:
+    str: The calculation result from Wolfram Alpha, or an error message if the request fails.
+    """
+    # Get the Wolfram Alpha App ID from environment variables
+    app_id = os.getenv('WOLFRAM_APP_ID', None)
+    if not app_id:
+        return "Error: Wolfram Alpha App ID is not set in environment variables."
+
+    # Define the API endpoint for Wolfram Alpha
+    url = 'https://api.wolframalpha.com/v2/query'
+    # Prepare the request parameters
+    params = {
+        'appid': app_id,
+        'input': query,
+        'output': 'json',
+    }
+
+    try:
+        # Send a GET request to Wolfram Alpha
+        response = requests.get(url, params=params, timeout=20)
+        # Parse the returned data as JSON
+        data = response.json()
+
+        # Check if the query was successful
+        if data['queryresult']['success']:
+            result = ''
+            # Iterate through the returned data to extract and accumulate the plaintext results
+            for pod in data['queryresult']['pods']:
+                for subpod in pod.get('subpods', []):
+                    plaintext = subpod.get('plaintext')
+                    if plaintext:
+                        result += f"{plaintext}\n"
+            # Return the accumulated result, or a message if no plaintext result is available
+            return result.strip() if result else "No plaintext result available."
+        else:
+            return "No results found for the query."
+    except requests.Timeout:
+        return "Error: The request to Wolfram Alpha timed out."
+    except Exception as e:
+        return f"An error occurred: {str(e)}"

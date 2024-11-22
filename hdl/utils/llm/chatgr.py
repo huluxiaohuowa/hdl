@@ -5,16 +5,12 @@ from .chat import OpenAI_M
 # 定义流式输出的生成函数
 def chat_with_llm(user_input, chat_history=[]):
     """
-    Facilitates a chat interaction with a language model (LLM).
-    This function takes user input and maintains a chat history. It streams the response from the LLM and updates the chat history in real-time.
+    Generates a response from the LLM based on the given user input and chat history.
     Args:
-        user_input (str): The input message from the user.
-        chat_history (list, optional): A list of tuples representing the chat history. Each tuple contains two strings: the user's message and the bot's response. Defaults to an empty list.
+        user_input (str): The user input message.
+        chat_history (list): A list of tuples representing the chat history, where each tuple contains the user's message and the bot's response.
     Yields:
-        tuple: A tuple containing three elements:
-            - An empty string (for compatibility with certain frameworks).
-            - The updated chat history including the latest user message and the bot's response.
-            - The same updated chat history.
+        tuple: A tuple containing the bot's response, the updated chat history, and the original chat history.
     """
 
     chat_history.append(("User: " + user_input, "Bot: "))  # 初始先追加用户消息

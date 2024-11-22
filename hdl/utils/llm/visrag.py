@@ -15,21 +15,38 @@ from .chat import OpenAI_M
 from .vis import pilimg_to_base64
 
 def get_image_md5(img: Image.Image):
+    """
+    计算给定图像的MD5哈希值。
+
+    该函数接收一个PIL.Image对象作为输入，将其转换为字节流，并计算该字节流的MD5哈希值。
+    这主要用于在不保存图像的情况下，快速识别或验证图像的内容。
+
+    Args:
+        img (Image.Image): 输入的图像，为PIL.Image对象。
+
+    Returns:
+        str: 图像的MD5哈希值的十六进制表示字符串。
+    """
+    # 将图像转换为字节流，以便进行哈希计算
     img_byte_array = img.tobytes()
+
+    # 创建一个MD5哈希对象
     hash_md5 = hashlib.md5()
+
+    # 使用图像的字节流更新哈希对象
     hash_md5.update(img_byte_array)
+
+    # 获取哈希值的十六进制表示字符串
     hex_digest = hash_md5.hexdigest()
+
+    # 返回计算出的MD5哈希值
     return hex_digest
 
 def calculate_md5_from_binary(binary_data):
-    """
-    计算给定二进制数据的MD5哈希值。
-
-    参数:
-    binary_data (bytes): 需要计算MD5的二进制数据。
-
-    返回:
-    str: 二进制数据的MD5哈希值的十六进制表示。
+    """ 计算二进制数据的MD5哈希值。
+    参数：
+    binary_data (bytes): 二进制数据
+    返回值：计算出的MD5哈希值的十六进制表示
     """
     # 初始化MD5哈希对象
     hash_md5 = hashlib.md5()

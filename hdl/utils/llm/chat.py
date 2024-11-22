@@ -6,7 +6,7 @@ import subprocess
 
 
 from openai import OpenAI
-from ..desc.template import FN_TEMPLATE
+from ..desc.template import FN_TEMPLATE, COT_TEMPLATE
 from ..desc.func_desc import FN_DESC
 import json
 # import traceback
@@ -135,10 +135,14 @@ class OpenAI_M():
                 *args,
                 **kwargs
             )
-        self.tools = tools
-        self.tool_desc = FN_DESC
+        self.tools: list = tools
+        self.tool_desc: dict = FN_DESC
         if tool_desc is not None:
             self.tool_desc = self.tool_desc | tool_desc
+
+        self.tool_desc_str = "\n".join(
+            [self.tool_desc.get(tool.__name__, "") for tool in self.tools]
+        )
 
     def get_thought_chain(
         self,
@@ -164,7 +168,7 @@ class OpenAI_M():
 
     def get_resp(
         self,
-        prompt : str,
+        prompt: str,
         sys_info: str = None,
         assis_info: str = None,
         images: list = None,
@@ -174,30 +178,38 @@ class OpenAI_M():
         stream: bool = True,
         **kwargs: t.Any,
     ):
-        """Get response from chatbot based on the provided prompt and optional images.
+        """
+        获取响应函数。构造并发送一个聊天请求，以获取模型的响应。
 
-        Args:
-            prompt (str): The prompt to provide to the chatbot.
-            images (list, optional): List of images to include in the response. Defaults to [].
-            image_keys (tuple, optional): Tuple containing keys for image data. Defaults to ("image", "image").
-            stop (list[str] | None, optional): List of strings that indicate the end of the conversation. Defaults to ["USER:", "ASSISTANT:"].
-            model (str, optional): The model to use for generating the response. Defaults to "default_model".
-            stream (bool, optional): Whether to stream the response. Defaults to True.
-            **kwargs: Additional keyword arguments to pass to the chatbot API.
+        参数:
+        - prompt: 用户的输入文本。
+        - sys_info: 系统信息，用于提供给模型作为上下文。
+        - assis_info: 助手信息，用于在用户输入后提供给模型。
+        - images: 图像列表，用于提供给模型作为输入的一部分。
+        - image_keys: 图像键的元组，用于指定图像的类型和位置。
+        - stop: 停止序列，用于指示模型在生成文本时应停止的序列。
+        - model: 使用的模型名称。
+        - stream: 是否以流式传输方式接收响应。
+        - **kwargs: 其他传递给模型的参数。
 
-        Returns:
-            dict: The response from the chatbot.
+        返回:
+        - response: 模型的响应。
         """
 
+        # 初始化内容列表，至少包含用户的文本输入
         content = [
             {"type": "text", "text": prompt},
         ]
+
+        # 根据image_keys的长度，调整其为三元组形式
         if isinstance(image_keys, str):
             image_keys = (image_keys,) * 3
         elif len(image_keys) == 2:
             image_keys = (image_keys[0],) + tuple(image_keys)
         elif len(image_keys) == 1:
             image_keys = (image_keys[0],) * 3
+
+        # 如果提供了图像，将其添加到内容列表中
         if images:
             if isinstance(images, str):
                 images = [images]
@@ -209,30 +221,39 @@ class OpenAI_M():
                     }
                 })
         else:
+            # 如果没有提供图像，内容仅包含提示文本
             content = prompt
 
+        # 初始化消息列表，首先添加系统信息（如果提供）
         messages = []
         if sys_info:
             messages.append({
                 "role": "system",
                 "content": sys_info
             })
+
+        # 添加用户输入作为消息
         messages.append({
             "role": "user",
             "content": content
         })
+
+        # 如果提供了助手信息，将其添加到消息列表中
         if assis_info:
             messages.append({
                 "role": "assistant",
                 "content": assis_info
             })
 
+        # 调用模型生成响应
         response = self.client.chat.completions.create(
             messages=messages,
             stream=stream,
             model=model,
             **kwargs
         )
+
+        # 返回模型的响应
         return response
 
     def invoke(
@@ -343,9 +364,11 @@ class OpenAI_M():
         """
         fn_template = kwargs.pop("fn_template", FN_TEMPLATE)
         prompt_final = fn_template
-        for tool in self.tools:
-            prompt_final += self.tool_desc.get(tool.__name__, "")
+        # for tool in self.tools:
+        #     prompt_final += self.tool_desc.get(tool.__name__, "")
         # prompt_final += f"\n用户的问题：\n{prompt}"
+
+        prompt_final += self.tool_desc_str
 
         decision_dict_str = self.invoke(
             prompt=prompt,

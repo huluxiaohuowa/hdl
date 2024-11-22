@@ -91,6 +91,22 @@ FN_DESC = {
 }
 
 """,
+    "wolfram_alpha_calculate": """
+## 函数名：wolfram_alpha_calculate
+描述：当用户要求计算一个数学表达式时，调用此工具，计算这个表达式，返回计算结果。
+触发条件：用户要求计算一个数学表达式
+参数：
+# query (str): 用户要求的数学表达式
+返回值 (str): 计算结果
+需要返回的json
+{
+    "function_name": "wolfram_alpha_calculate",
+    "params":
+        {
+            "query": <expression>
+        }
+}
+""",
 
     "default": None
 }

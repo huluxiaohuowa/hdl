@@ -5,16 +5,14 @@ import math
 
 def execute_code(code):
     """
-    Executes the given Python code string in a subprocess.
+    Executes the given Python code string in a subprocess and returns the execution result.
 
-    This function uses the subprocess to execute Python code strings, limiting the execution time to prevent infinite loops,
-    and captures the execution output and errors for returning results.
-
-    Parameters:
-    code (str): The Python code string to be executed.
+    Args:
+        code (str): The Python code to be executed, provided as a string.
 
     Returns:
-    str: The output result of executing the code or an error message.
+        str: The output result of the code execution. If there is an error during execution,
+             it returns an error message describing the error.
     """
     try:
         # Execute the code in a subprocess for safety
@@ -43,18 +41,16 @@ def execute_code(code):
 
 def calculate(expression):
     """
-    Calculates the result of a mathematical expression.
+    Safely evaluates a mathematical expression.
 
-    This function evaluates a mathematical expression string passed as an argument and returns the result.
-    In order to prevent security risks, the use of built-in functions is restricted during evaluation,
-    allowing only the 'math' module to be accessed. If an exception occurs during evaluation,
-    it returns the corresponding error message.
+    This function receives a string containing a mathematical expression and evaluates it safely, allowing access only to the math module.
+    If an error occurs during evaluation, such as a syntax error or an undefined function, the function catches the exception and returns an error message.
 
-    Parameters:
-    expression (str): The mathematical expression to calculate.
+    Args:
+        expression (str): The mathematical expression to evaluate.
 
     Returns:
-    The result of the calculation or an error message if an exception occurs.
+        The result of the expression evaluation or an error message if an exception occurs.
     """
     try:
         # Evaluate the expression with restricted built-in functions and access to the math module

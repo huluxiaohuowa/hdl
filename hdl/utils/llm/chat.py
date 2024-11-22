@@ -7,7 +7,7 @@ import subprocess
 
 from openai import OpenAI
 from ..desc.template import FN_TEMPLATE, COT_TEMPLATE
-from ..desc.func_desc import FN_DESC
+from ..desc.func_desc import TOOL_DESC
 import json
 # import traceback
 
@@ -114,6 +114,7 @@ class OpenAI_M():
         groq_api_key: str = None,
         tools: list = None,
         tool_desc: dict = None,
+        cot_desc: str = None,
         *args,
         **kwargs
     ):
@@ -136,13 +137,26 @@ class OpenAI_M():
                 **kwargs
             )
         self.tools: list = tools
-        self.tool_desc: dict = FN_DESC
+        self.tool_desc: dict = TOOL_DESC
         if tool_desc is not None:
             self.tool_desc = self.tool_desc | tool_desc
 
-        self.tool_desc_str = "\n".join(
-            [self.tool_desc.get(tool.__name__, "") for tool in self.tools]
-        )
+        self.tool_descs = [
+            self.tool_desc[tool.__name__]['desc']
+            for tool in self.tools
+        ]
+        self.tool_descs_verbose = [
+            self.tool_desc[tool.__name__]['desc']
+            + self.tool_desc[tool.__name__]['json']
+            for tool in self.tools
+        ]
+
+        self.tool_info = "\n".join(self.tool_descs)
+        self.tool_desc_str = "\n".join(self.tool_descs_verbose)
+
+        self.cot_desc = cot_desc
+        if not self.cot_desc:
+            self.cot_desc = COT_TEMPLATE
 
     def get_thought_chain(
         self,

@@ -218,10 +218,10 @@ class OpenAI_M():
                             **kwargs
                         )
                         # 将工具返回的信息累积到当前信息中
-                        current_info += tool_resp
+                        current_info += f"\n{tool_resp}"
                     else:
                         # 如果不使用工具，将当前思考步骤的标题累积到当前信息中
-                        current_info += step_json["title"]
+                        current_info += f"\n{step_json["title"]}"
                 yield n_steps, current_info, steps
             except Exception as e:
                 # 捕获异常并打印，然后继续下一轮思考

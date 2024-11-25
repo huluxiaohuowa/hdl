@@ -162,6 +162,7 @@ class OpenAI_M():
         self,
         prompt,
         max_step: int = 30,
+        steps: list = None,
         **kwargs
     ):
         """_summary_
@@ -177,18 +178,19 @@ class OpenAI_M():
         current_info = ""
         # 初始化步数为0，用于控制最大思考次数
         n_steps = 0
-
-        # 初始化步骤列表，用于记录每一步的思考过程
-        steps = []
+        if steps is None:
+            steps = []
 
         # 进入思考循环，直到找到答案或达到最大步数
         while True:
+            # if steps is None:
+            #     steps = []
             # 增加步数计数
             n_steps += 1
             # 检查是否达到最大步数，如果是，则退出循环并返回默认答案
-            if n_steps >= max_step:
+            if n_steps > max_step:
                 print("Max step reached!")
-                return "Sorry, I can't think of a better answer."
+                return n_steps, current_info, steps
 
             # 调用思考函数，传入当前信息和用户问题，获取下一步思考的结果
             resp = self.invoke(
@@ -200,13 +202,12 @@ class OpenAI_M():
             try:
                 # 将思考结果解析为JSON格式，以便后续处理
                 step_json = json.loads(resp)
-                print(step_json)
+                # print(step_json)
                 # 将当前思考步骤添加到步骤列表中
                 steps.append(step_json)
                 # 如果思考步骤中标记为停止思考，则打印所有步骤并返回最终答案
-                if step_json["stop_thinking"]:
-                    # print(steps)
-                    return step_json["content"]
+                if step_json.get("stop_thinking", False):
+                    return n_steps, current_info, steps
                 else:
                     # 如果思考步骤中包含使用工具的指示，则构造工具提示并调用agent_response方法
                     if 'tool' in step_json:
@@ -221,6 +222,7 @@ class OpenAI_M():
                     else:
                         # 如果不使用工具，将当前思考步骤的标题累积到当前信息中
                         current_info += step_json["title"]
+                yield n_steps, current_info, steps
             except Exception as e:
                 # 捕获异常并打印，然后继续下一轮思考
                 print(e)

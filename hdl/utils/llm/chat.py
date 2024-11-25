@@ -435,7 +435,6 @@ class OpenAI_M():
             sys_info=prompt_final,
             **kwargs
         )
-        print(decision_dict_str)
         return decision_dict_str
 
     def get_tool_result(

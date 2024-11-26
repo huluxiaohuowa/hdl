@@ -211,7 +211,8 @@ class OpenAI_M():
                 if 'tool' in step_json:
                     tool_prompt = step_json["tool"] \
                         + step_json.get("title", "") \
-                        + step_json.get("content", "")
+                        + step_json.get("content", "") \
+                        + f"用户问题为：{prompt}"
 
                     tool_resp = self.agent_response(
                         tool_prompt,

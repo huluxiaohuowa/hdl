@@ -209,7 +209,10 @@ class OpenAI_M():
 
                 # 如果思考步骤中包含使用工具的指示，则构造工具提示并调用agent_response方法
                 if 'tool' in step_json:
-                    tool_prompt = step_json["tool"] + step_json["title"] + step_json["content"]
+                    tool_prompt = step_json["tool"] \
+                        + step_json.get("title", "") \
+                        + step_json.get("content", "")
+
                     tool_resp = self.agent_response(
                         tool_prompt,
                         stream=False,
@@ -219,15 +222,17 @@ class OpenAI_M():
                     current_info += f"\n{tool_resp}"
                 else:
                     if step_json.get("stop_thinking", False):
-                        current_info += f"\n{step_json['content']}"
+                        current_info += f"\n{step_json.get("content", "")}"
                         yield n_steps, current_info, steps
                         return
                     # 如果不使用工具，将当前思考步骤的标题累积到当前信息中
                     else:
-                        current_info += f"\n{step_json["title"]}"
+                        current_info += f"\n{step_json.get("title", "")}"
+                        current_info += f"\n{step_json.get("content", "")}"
 
                 if step_json.get("stop_thinking", False):
-                    current_info += f"\n{step_json['content']}"
+                    current_info += f"\n{step_json.get("title", "")}"
+                    current_info += f"\n{step_json.get("content", "")}"
                     yield n_steps, current_info, steps
                     return
                 yield n_steps, current_info, steps

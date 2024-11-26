@@ -58,3 +58,23 @@ def calculate(expression):
     except Exception as e:
         # Return the error message if an exception occurs
         return f"Error: {str(e)}"
+
+def count_character_occurrences(text, char):
+    """
+    统计文本中某个字符出现的次数
+
+    Args:
+        text (str): 输入的单词或句子
+        char (str): 要统计的字符（仅支持单个字符）
+
+    Returns:
+        int: 字符在文本中出现的次数
+    """
+    if not isinstance(text, str):
+        raise ValueError("输入的文本必须是字符串类型")
+    if not isinstance(char, str) or len(char) != 1:
+        raise ValueError("要统计的字符必须是一个单字符的字符串")
+    text = text.lower()
+    char = char.lower()
+
+    return f"{text} 中 {char} 共出现了 {text.count(char)} 次。"

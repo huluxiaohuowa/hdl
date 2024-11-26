@@ -123,6 +123,25 @@ TOOL_DESC = {
         """
     },
 
+    "count_character_occurrences": """
+## 函数名：count_character_occurrences
+描述：当用户要求计算一段文本中某个字符出现的次数时，调用此工具，返回计算结果。
+参数：
+# text (str): 输入的单词或句子
+# char (str): 要统计的字符
+返回值 (str): 字符在文本中出现的次数
+""",
+    "json": """
+需要返回的json
+{
+    "function_name": "count_character_occurrences",
+    "params":
+        {
+            "text": <str>,
+            "char": <str>
+        }
+}
+""",
 
     "default": None
 

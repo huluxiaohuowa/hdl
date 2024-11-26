@@ -191,7 +191,8 @@ class OpenAI_M():
             # 检查是否达到最大步数，如果是，则退出循环并返回默认答案
             if n_steps > max_step:
                 print("Max step reached!")
-                return n_steps, current_info, steps
+                yield n_steps, current_info, steps
+                return
 
             # 调用思考函数，传入当前信息和用户问题，获取下一步思考的结果
             resp = self.invoke(
@@ -209,24 +210,25 @@ class OpenAI_M():
                 # 将当前思考步骤添加到步骤列表中
                 steps.append(step_json)
                 # 如果思考步骤中标记为停止思考，则打印所有步骤并返回最终答案
+
+                # 如果思考步骤中包含使用工具的指示，则构造工具提示并调用agent_response方法
+                if 'tool' in step_json:
+                    tool_prompt = step_json["tool"] + step_json["title"] + step_json["content"]
+                    tool_resp = self.agent_response(
+                        tool_prompt,
+                        stream=False,
+                        **kwargs
+                    )
+                    # 将工具返回的信息累积到当前信息中
+                    current_info += f"\n{tool_resp}"
+                else:
+                    # 如果不使用工具，将当前思考步骤的标题累积到当前信息中
+                    current_info += f"\n{step_json["title"]}"
+
                 if step_json.get("stop_thinking", False):
                     current_info += f"\n{step_json['content']}"
                     yield n_steps, current_info, steps
                     return
-                else:
-                    # 如果思考步骤中包含使用工具的指示，则构造工具提示并调用agent_response方法
-                    if 'tool' in step_json:
-                        tool_prompt = step_json["tool"] + step_json["title"] + step_json["content"]
-                        tool_resp = self.agent_response(
-                            tool_prompt,
-                            stream=False,
-                            **kwargs
-                        )
-                        # 将工具返回的信息累积到当前信息中
-                        current_info += f"\n{tool_resp}"
-                    else:
-                        # 如果不使用工具，将当前思考步骤的标题累积到当前信息中
-                        current_info += f"\n{step_json["title"]}"
                 yield n_steps, current_info, steps
             except Exception as e:
                 # 捕获异常并打印，然后继续下一轮思考

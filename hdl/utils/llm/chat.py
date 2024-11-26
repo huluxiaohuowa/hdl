@@ -200,6 +200,8 @@ class OpenAI_M():
                 assis_info = "好的，我将根据用户的问题和信息给出当前需要进行的操作或最终答案"
             )
 
+            print(f"第{n_steps}步思考结果：\n{resp}\n\n")
+
             try:
                 # 将思考结果解析为JSON格式，以便后续处理
                 step_json = json.loads(resp)

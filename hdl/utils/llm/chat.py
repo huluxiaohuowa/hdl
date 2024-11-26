@@ -210,7 +210,8 @@ class OpenAI_M():
                 steps.append(step_json)
                 # 如果思考步骤中标记为停止思考，则打印所有步骤并返回最终答案
                 if step_json.get("stop_thinking", False):
-                    return n_steps, current_info, steps
+                    yield n_steps, current_info, steps
+                    return
                 else:
                     # 如果思考步骤中包含使用工具的指示，则构造工具提示并调用agent_response方法
                     if 'tool' in step_json:

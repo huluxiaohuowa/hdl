@@ -192,7 +192,7 @@ class OpenAI_M():
 
             # 调用思考函数，传入当前信息和用户问题，获取下一步思考的结果
             resp = self.invoke(
-                current_info + "用户问题：" + prompt,
+                "现有的步骤得出来的信息：\n" + current_info + "\n用户问题：" + prompt,
                 sys_info=COT_TEMPLATE + self.tool_info,
                 assis_info = "好的，我将根据用户的问题和信息给出当前需要进行的操作或最终答案"
             )

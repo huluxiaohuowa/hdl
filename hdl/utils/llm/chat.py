@@ -210,6 +210,7 @@ class OpenAI_M():
                 steps.append(step_json)
                 # 如果思考步骤中标记为停止思考，则打印所有步骤并返回最终答案
                 if step_json.get("stop_thinking", False):
+                    current_info += f"\n{step_json['content']}"
                     yield n_steps, current_info, steps
                     return
                 else:

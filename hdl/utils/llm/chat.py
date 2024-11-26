@@ -218,8 +218,13 @@ class OpenAI_M():
                     # 将工具返回的信息累积到当前信息中
                     current_info += f"\n{tool_resp}"
                 else:
+                    if step_json.get("stop_thinking", False):
+                        current_info += f"\n{step_json['content']}"
+                        yield n_steps, current_info, steps
+                        return
                     # 如果不使用工具，将当前思考步骤的标题累积到当前信息中
-                    current_info += f"\n{step_json["title"]}"
+                    else:
+                        current_info += f"\n{step_json["title"]}"
 
                 if step_json.get("stop_thinking", False):
                     current_info += f"\n{step_json['content']}"

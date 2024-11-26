@@ -183,10 +183,6 @@ class OpenAI_M():
 
         # 进入思考循环，直到找到答案或达到最大步数
         while True:
-            print(f"调式信息：\nStep {n_steps}, current_info: {current_info}, steps: {steps}\n\n")
-            # if steps is None:
-            #     steps = []
-            # 增加步数计数
             n_steps += 1
             # 检查是否达到最大步数，如果是，则退出循环并返回默认答案
             if n_steps > max_step:

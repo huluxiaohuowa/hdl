@@ -3,6 +3,7 @@ import asyncio
 import os
 from concurrent.futures import ProcessPoolExecutor
 import subprocess
+from typing import Generator
 
 
 from openai import OpenAI
@@ -219,6 +220,8 @@ class OpenAI_M():
                         stream=False,
                         **kwargs
                     )
+                    if isinstance(tool_resp, Generator):
+                        tool_resp = "".join(tool_resp)
                     # 将工具返回的信息累积到当前信息中
                     current_info += f"\n{tool_resp}"
                 else:

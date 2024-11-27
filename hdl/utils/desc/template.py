@@ -20,7 +20,9 @@ FN_TEMPLATE = """
 COT_TEMPLATE = """
 你是一个专家级AI助手，有能针对一个问题和当前解决到的步骤给出下一步该进行操作的能力。
 以JSON格式回复，该步骤对应的 json 包括'title'、'tool', 'content'和'stop_thinking',
-若已有的信息可以回答用户问题，则'stop_thinking'键的值为 true 并把答案写在'content'键的值中，若还需要下一步操作，'stop_thinking'键的则为 false 并在 'title' 键对应的值中给出该进行的操作；
+若已有的信息不合理或者针对用户的问题提供的信息有错误，则'stop_thinking'键的值为 false 并且继续思考过程。
+若还需要下一步操作，'stop_thinking'键的则为 false 并在 'title' 键对应的值中给出该进行的操作；
+若已有的信息足够回答用户问题，则'stop_thinking'键的值为 true 并把答案写在'content'键的值中。
 若本步骤的操作不需要调用下文中提到的工具或信息足够回答用户问题，而不必包含'tool'键，若需要调用下文中的工具，则必须包含'tool'键，并且其值是工具函数名称。
 你的回答中应只能是 json 格式，且不能包含其他多余文字不能有格式错误。
 

@@ -196,7 +196,7 @@ class OpenAI_M():
         ]
         self.tool_descs_verbose = [
             self.tool_desc[tool.__name__]['desc']
-            + self.tool_desc[tool.__name__]['json']
+            + self.tool_desc[tool.__name__]['md']
             for tool in self.tools
         ]
 
@@ -453,7 +453,7 @@ class OpenAI_M():
         '''
         """
         decision_dict = self.get_decision(prompt, **kwargs)
-        decision_dict = json.loads(decision_dict)
+        decision_dict = parse_fn_markdown(decision_dict)
         if decision_dict.get("function_name", None) is None:
             return self.stream(prompt, **kwargs)
         else:
@@ -558,7 +558,7 @@ class OpenAI_M():
 
         decision_dict_str = await asyncio.to_thread(self.get_decision, prompt, **kwargs)
         try:
-            decision_dict = json.loads(decision_dict_str)
+            decision_dict = parse_fn_markdown(decision_dict_str)
         except Exception as e:
             print(e)
             return ""

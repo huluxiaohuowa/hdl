@@ -4,6 +4,7 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 import subprocess
 from typing import Generator
+import re
 
 
 from openai import OpenAI
@@ -12,6 +13,53 @@ from ..desc.func_desc import TOOL_DESC
 import json
 # import traceback
 
+def parse_fn_markdown(markdown_text, params_key="params"):
+    lines = markdown_text.strip().split("\n")
+    result = {}
+    params = {}
+
+    for line in lines:
+        # 使用正则提取 key 和 value
+        match = re.match(r"-\s*(\w+):\s*(.+)", line.strip())
+        if match:
+            key, value = match.groups()
+            if key == "function_name":
+                result[key] = value  # 固定的 function_name
+            else:
+                params[key] = value  # 其他的进入 params（或替代键名）
+
+    # 将提取的参数嵌套到指定的键名下
+    result[params_key] = params
+    return result
+
+def parse_cot_markdown(markdown_text):
+    # 提取标题
+    title_match = re.search(r"##\s*(.+)", markdown_text)
+    title = title_match.group(1) if title_match else None
+    title = title.replace("：", "").replace(":", "").replace(" ", "")
+
+    # 提取工具
+    tool_match = re.search(r"tool\s*(.+)", markdown_text)
+    tool = tool_match.group(1) if tool_match else None
+    tool = tool.replace("：", "").replace(":", "").replace(" ", "")
+
+    # 提取内容
+    content_match = re.search(r"content\s*(.+)", markdown_text)
+    content = content_match.group(1) if content_match else None
+    content = content.replace("：", "").replace(":", "").replace(" ", "")
+
+    # 提取停止思考
+    stop_thinking_match = re.search(r"stop_thinking\s*(.+)", markdown_text)
+    stop_thinking = stop_thinking_match.group(1) == "true" or stop_thinking_match.group(1) == "True" if stop_thinking_match else None
+
+
+    # 组装为字典
+    return {
+        "title": title,
+        "tool": tool,
+        "content": content,
+        "stop_thinking": stop_thinking
+    }
 
 def chat_oai_stream(
     base_url="http://127.0.0.1:8000/v1",
@@ -202,7 +250,7 @@ class OpenAI_M():
 
             try:
                 # 将思考结果解析为JSON格式，以便后续处理
-                step_json = json.loads(resp)
+                step_json = parse_cot_markdown(resp)
                 # print(step_json)
                 # 将当前思考步骤添加到步骤列表中
                 steps.append(step_json)
@@ -473,7 +521,8 @@ class OpenAI_M():
             **kwargs
         )
         try:
-            decision_dict = json.loads(decision_dict_str)
+            decision_dict = parse_fn_markdown(decision_dict_str)
+            # decision_dict = json.loads(decision_dict_str)
         except Exception as e:
             print(e)
             return ""

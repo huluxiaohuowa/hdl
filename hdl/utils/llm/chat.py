@@ -32,25 +32,26 @@ def parse_fn_markdown(markdown_text, params_key="params"):
     result[params_key] = params
     return result
 
+import re
 def parse_cot_markdown(markdown_text):
     # 提取标题
     title_match = re.search(r"##\s*(.+)", markdown_text)
-    title = title_match.group(1) if title_match else None
-    title = title.replace("：", "").replace(":", "").replace(" ", "")
+    title = title_match.group(1) if title_match else ""
+    # title = title.replace("：", "").replace(":", "").replace(" ", "")
 
     # 提取工具
-    tool_match = re.search(r"tool\s*(.+)", markdown_text)
-    tool = tool_match.group(1) if tool_match else None
-    tool = tool.replace("：", "").replace(":", "").replace(" ", "")
+    tool_match = re.search(r"tool:\s*(.+)", markdown_text)
+    tool = tool_match.group(1).strip() if tool_match else ""
+    # tool = tool.replace("：", "").replace(":", "").replace(" ", "")
 
     # 提取内容
-    content_match = re.search(r"content\s*(.+)", markdown_text)
-    content = content_match.group(1) if content_match else None
-    content = content.replace("：", "").replace(":", "").replace(" ", "")
+    content_match = re.search(r"content:\s*(.+)", markdown_text)
+    content = content_match.group(1) if content_match else ""
+    # content = content.replace("：", "").replace(":", "").replace(" ", "")
 
     # 提取停止思考
-    stop_thinking_match = re.search(r"stop_thinking\s*(.+)", markdown_text)
-    stop_thinking = stop_thinking_match.group(1) == "true" or stop_thinking_match.group(1) == "True" if stop_thinking_match else None
+    stop_thinking_match = re.search(r"stop_thinking:\s*(.+)", markdown_text)
+    stop_thinking = stop_thinking_match.group(1) == "true" or stop_thinking_match.group(1) == "True" if stop_thinking_match else False
 
 
     # 组装为字典
@@ -257,7 +258,7 @@ class OpenAI_M():
                 # 如果思考步骤中标记为停止思考，则打印所有步骤并返回最终答案
 
                 # 如果思考步骤中包含使用工具的指示，则构造工具提示并调用agent_response方法
-                if 'tool' in step_json:
+                if 'tool' in step_json and step_json['tool']:
                     tool_prompt = step_json["tool"] \
                         + step_json.get("title", "") \
                         + step_json.get("content", "") \

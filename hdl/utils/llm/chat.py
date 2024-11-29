@@ -53,16 +53,20 @@ def parse_fn_markdown(markdown_text, params_key="params"):
     return result
 
 def parse_cot_markdown(markdown_text):
-    # 使用正则提取各部分内容，支持跨行提取
-    title_match = re.search(r"##\s*(.+?)(?:\n|$)", markdown_text, re.DOTALL)
-    tool_match = re.search(r"-\s*tool\s*[:：]\s*(.+?)(?:\n|$)", markdown_text, re.DOTALL)
-    content_match = re.search(r"-\s*content\s*[:：]\s*(.+?)(?:\n|$)", markdown_text, re.DOTALL)
-    stop_thinking_match = re.search(r"-\s*stop_thinking\s*[:：]\s*(.+?)(?:\n|$)", markdown_text, re.DOTALL)
-
-    # 提取匹配结果并清理多余的空白字符
+    # 提取标题（支持跨行）
+    title_match = re.search(r"##\s*(.+?)(?=\n-|\Z)", markdown_text, re.DOTALL)
     title = title_match.group(1).strip() if title_match else ""
+
+    # 提取工具
+    tool_match = re.search(r"-\s*tool\s*[:：]\s*(.+?)(?=\n-|\Z)", markdown_text, re.DOTALL)
     tool = tool_match.group(1).strip() if tool_match else ""
+
+    # 提取内容（支持跨行）
+    content_match = re.search(r"-\s*content\s*[:：]\s*(.+?)(?=\n-|\Z)", markdown_text, re.DOTALL)
     content = content_match.group(1).strip() if content_match else ""
+
+    # 提取停止思考
+    stop_thinking_match = re.search(r"-\s*stop_thinking\s*[:：]\s*(.+?)(?=\n-|\Z)", markdown_text, re.DOTALL)
     stop_thinking = stop_thinking_match.group(1).strip().lower() in ["true"] if stop_thinking_match else False
 
     # 返回解析结果的字典

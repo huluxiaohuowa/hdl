@@ -32,7 +32,6 @@ def parse_fn_markdown(markdown_text, params_key="params"):
     result[params_key] = params
     return result
 
-import re
 def parse_cot_markdown(markdown_text):
     # 提取标题
     title_match = re.search(r"##\s*(.+)", markdown_text)

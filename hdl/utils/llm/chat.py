@@ -40,17 +40,17 @@ def parse_cot_markdown(markdown_text):
     # title = title.replace("：", "").replace(":", "").replace(" ", "")
 
     # 提取工具
-    tool_match = re.search(r"tool:\s*(.+)", markdown_text)
+    tool_match = re.search(r"- tool:\s*(.+)", markdown_text)
     tool = tool_match.group(1).strip() if tool_match else ""
     # tool = tool.replace("：", "").replace(":", "").replace(" ", "")
 
     # 提取内容
-    content_match = re.search(r"content:\s*(.+)", markdown_text)
+    content_match = re.search(r"- content:\s*(.+)", markdown_text)
     content = content_match.group(1) if content_match else ""
     # content = content.replace("：", "").replace(":", "").replace(" ", "")
 
     # 提取停止思考
-    stop_thinking_match = re.search(r"stop_thinking:\s*(.+)", markdown_text)
+    stop_thinking_match = re.search(r"- stop_thinking:\s*(.+)", markdown_text)
     stop_thinking = stop_thinking_match.group(1) == "true" or stop_thinking_match.group(1) == "True" if stop_thinking_match else False
 
 

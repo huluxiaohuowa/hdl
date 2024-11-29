@@ -39,7 +39,7 @@ TOOL_DESC = {
 返回值 (str): 执行结果
         """,
         "md": """
-需要返回的markdown
+需要返回的markdown:
 - function_name: execute_code
 - code: <code>
 """
@@ -54,7 +54,7 @@ TOOL_DESC = {
 返回值 (str): 计算结果
         """,
         "md": """
-需要返回的markdown
+需要返回的markdown:
 - function_name: calculate
 - expression: <expression>
 """
@@ -70,7 +70,7 @@ TOOL_DESC = {
 返回值 (str): 联网搜索到的信息
         """,
         "md": """
-需要返回的markdown
+需要返回的markdown:
 - function_name: fetch_baidu_results
 - query: <query from user question>
 - max_n_links: <num of max results, 如果用户没有要求，这一项则指定为3>

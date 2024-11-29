@@ -396,9 +396,9 @@ class OpenAI_M():
         decision_dict = self.get_decision(prompt, **kwargs)
         decision_dict = parse_fn_markdown(decision_dict)
         if decision_dict.get("function_name", None) is None:
-            return self.stream(prompt, **kwargs)
+            return self.chat(prompt=prompt, stream=stream, **kwargs)
         else:
-            tool_result = str(self.get_tool_result(prompt, **kwargs))
+            tool_result = str(self.get_tool_result(decision_dict))
             prompt_final = "根据上下文回答最后的用户问题：\n上下文信息：\n"
             prompt_final += tool_result
             # prompt_final += f"\n用户的问题：\n{prompt}"
@@ -445,8 +445,7 @@ class OpenAI_M():
 
     def get_tool_result(
         self,
-        prompt: str,
-        **kwargs: t.Any
+        decision_dict: dict,
     ):
         """Get the result of a tool based on the decision made.
 
@@ -457,16 +456,16 @@ class OpenAI_M():
         Returns:
             str: The result of the tool.
         """
-        decision_dict_str = self.get_decision(
-            prompt,
-            **kwargs
-        )
-        try:
-            decision_dict = parse_fn_markdown(decision_dict_str)
-            # decision_dict = json.loads(decision_dict_str)
-        except Exception as e:
-            print(e)
-            return ""
+        # decision_dict_str = self.get_decision(
+        #     prompt,
+        #     **kwargs
+        # )
+        # try:
+        #     decision_dict = parse_fn_markdown(decision_dict_str)
+        #     # decision_dict = json.loads(decision_dict_str)
+        # except Exception as e:
+        #     print(e)
+        #     return ""
         func_name = decision_dict.get("function_name", None)
         if func_name is None:
             return ""

@@ -53,6 +53,23 @@ def parse_fn_markdown(markdown_text, params_key="params"):
     return result
 
 def parse_cot_markdown(markdown_text):
+    """
+    Parse a Markdown text formatted as 'COT' (Title, Tool, Content, Stop Thinking) and extract relevant information.
+
+    Args:
+        markdown_text (str): The Markdown text to parse.
+
+    Returns:
+        dict: A dictionary containing the parsed information with the following keys:
+            - 'title': Title extracted from the Markdown text.
+            - 'tool': Tool extracted from the Markdown text.
+            - 'content': Content extracted from the Markdown text.
+            - 'stop_thinking': Boolean indicating whether 'stop_thinking' is true or false.
+
+    Note:
+        - 'stop_thinking' value is considered True only if it is explicitly 'true' (case-insensitive).
+
+    """
     # 提取标题（支持跨行）
     title_match = re.search(r"##\s*(.+?)(?=\n-|\Z)", markdown_text, re.DOTALL)
     title = title_match.group(1).strip() if title_match else ""
@@ -76,6 +93,7 @@ def parse_cot_markdown(markdown_text):
         "content": content,
         "stop_thinking": stop_thinking
     }
+
 
 
 def run_tool_with_kwargs(tool, func_kwargs):
@@ -108,6 +126,24 @@ class OpenAI_M():
         *args,
         **kwargs
     ):
+        """
+        Initialize an instance of the OpenAI_M class with configuration options.
+
+        Args:
+            model_path (str): Path to the model. Defaults to "default_model".
+            device (str): Device to use, either 'gpu' or 'cpu'. Defaults to 'gpu'.
+            generation_kwargs (dict, optional): Additional keyword arguments for generation.
+            server_ip (str): IP address of the server. Defaults to "172.28.1.2".
+            server_port (int): Port number of the server. Defaults to 8000.
+            api_key (str): API key for authentication. Defaults to "dummy_key".
+            use_groq (bool): Flag to use Groq client. Defaults to False.
+            groq_api_key (str, optional): API key for Groq client.
+            tools (list, optional): List of tools to be used.
+            tool_desc (dict, optional): Additional tool descriptions.
+            cot_desc (str, optional): Chain of Thought description.
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         # self.model_path = model_path
         self.server_ip = server_ip
         self.server_port = server_port
@@ -155,14 +191,22 @@ class OpenAI_M():
         steps: list = None,
         **kwargs
     ):
-        """_summary_
+        """
+        Execute a Chain of Thought (COT) process to iteratively generate steps
+        towards solving a given prompt, utilizing tools if necessary.
 
         Args:
-            prompt (_type_): _description_
-            max_step (int, optional): _description_. Defaults to 30.
+            prompt (str): The initial question or problem to solve.
+            max_step (int, optional): Maximum number of steps to attempt. Defaults to 30.
+            steps (list, optional): List to accumulate steps taken. Defaults to None.
+            **kwargs: Additional keyword arguments for tool invocation.
 
-        Returns:
-            _type_: _description_
+        Yields:
+            tuple: A tuple containing the current step number, accumulated information,
+            and the list of steps taken.
+
+        Raises:
+            Exception: If an error occurs during the parsing or tool invocation process.
         """
         # 初始化当前信息为空字符串，用于累积后续的思考步骤和用户问题
         current_info = ""

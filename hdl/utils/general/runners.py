@@ -61,14 +61,17 @@ def calculate(expression):
 
 def count_character_occurrences(text, char):
     """
-    统计文本中某个字符出现的次数
+    Count the occurrences of a character in a text.
 
     Args:
-        text (str): 输入的单词或句子
-        char (str): 要统计的字符（仅支持单个字符）
+        text (str): The text in which to count character occurrences.
+        char (str): The character to count occurrences of.
 
     Returns:
-        int: 字符在文本中出现的次数
+        str: A string indicating how many times the character appears in the text.
+
+    Raises:
+        ValueError: If the input text is not a string or if the character is not a single character string.
     """
     if not isinstance(text, str):
         raise ValueError("输入的文本必须是字符串类型")

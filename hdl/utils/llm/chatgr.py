@@ -32,11 +32,11 @@ def chat_with_llm(user_input, chat_history=[]):
 def create_demo():
     """
     Creates a Gradio demo interface for a chatbot application.
-    The interface consists of:
+    The interface includes:
     - A chat history display at the top of the page.
-    - A user input textbox and a send button at the bottom of the page.
-    The send button and the enter key are both bound to the `chat_with_llm` function,
-    which handles sending the user's message and updating the chat history.
+    - A user input textbox at the bottom of the page.
+    - A send button to submit messages.
+    The user can send messages either by clicking the send button or by pressing the Enter key.
     Returns:
         gr.Blocks: The Gradio Blocks object representing the demo interface.
     """

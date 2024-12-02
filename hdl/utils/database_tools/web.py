@@ -58,10 +58,14 @@ def web_search_text(
 
 def fetch_baidu_results(query, max_n_links=3):
     """
-    模拟百度搜索，提取前三个搜索结果的网页文字内容并拼接返回。
-
-    :param query: str 要搜索的文本
-    :return: str 提取的网页内容拼接字符串
+    Fetches search results from Baidu for a given query and retrieves the text content of the top results.
+    Args:
+        query (str): The search query to be sent to Baidu.
+        max_n_links (int, optional): The maximum number of search result links to fetch. Defaults to 3.
+    Returns:
+        str: The concatenated text content of the fetched web pages.
+    Raises:
+        requests.RequestException: If there is an issue with the HTTP request.
     """
     try:
         max_n_links = int(max_n_links)
@@ -105,13 +109,14 @@ def fetch_baidu_results(query, max_n_links=3):
 
 def wolfram_alpha_calculate(query):
     """
-    This function sends a query to Wolfram Alpha and returns the calculation result.
-
-    Parameters:
-    query (str): The query string to send to Wolfram Alpha.
-
+    Sends a query to the Wolfram Alpha API and returns the result.
+    Args:
+        query (str): The query string to be sent to Wolfram Alpha.
     Returns:
-    str: The calculation result from Wolfram Alpha, or an error message if the request fails.
+        str: The result of the query in plaintext format, or an error message if the query was unsuccessful or if an error occurred.
+    Raises:
+        requests.Timeout: If the request to Wolfram Alpha times out.
+        Exception: If any other error occurs during the request.
     """
     # Get the Wolfram Alpha App ID from environment variables
     app_id = os.getenv('WOLFRAM_APP_ID', None)

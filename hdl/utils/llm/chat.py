@@ -14,6 +14,15 @@ import json
 # import traceback
 
 def parse_fn_markdown(markdown_text, params_key="params"):
+    """
+    Parses a markdown text to extract function name and parameters.
+    Args:
+        markdown_text (str): The markdown text containing the function name and parameters.
+        params_key (str, optional): The key under which the parameters will be nested in the result dictionary. Defaults to "params".
+    Returns:
+        dict: A dictionary containing the function name and parameters. The function name is stored with the key "function_name", and the parameters are nested under the specified params_key.
+    """
+
     lines = markdown_text.strip().split("\n")
     result = {}
     params = {}

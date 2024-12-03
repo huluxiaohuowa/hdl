@@ -577,23 +577,22 @@ class OpenAI_M():
     def od(
         self,
         image_path,
-        save_path=None
     ):
         json_str = self.invoke(
-            prompt="""
-Detect all the objects in the image, return bounding boxes for all of them using the following format (DO NOT INCLUDE ANY OTHER WORDS IN YOUR ANSWER BUT ONLY THE LIST):
-[
-    {
-        "object": "object_name",
-        "bboxes": [[xmin, ymin, xmax, ymax], [xmin, ymin, xmax, ymax], ...]
-    },
-    ...
-]
-""",
-            images="https://air-example-data-2.s3.us-west-2.amazonaws.com/vllm_opensource_llava/stop_sign.jpg",
+            prompt=self.od_desc,
+            images=image_path,
         )
+        return json_str
+
+    def od_v(
+        self,
+        image_path,
+        save_path,
+    ):
+        json_str = self.od(image_path)
         img = draw_and_plot_boxes_from_json(json_str, image_path, save_path)
         return img, save_path
+
 
 
 class MMChatter():

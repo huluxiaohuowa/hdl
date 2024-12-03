@@ -10,8 +10,8 @@ import re
 from openai import OpenAI
 from ..desc.template import FN_TEMPLATE, COT_TEMPLATE, OD_TEMPLATE
 from ..desc.func_desc import TOOL_DESC
-from .vis import draw_and_plot_boxes_from_json
-import json
+from .vis import draw_and_plot_boxes_from_json, to_img
+# import json
 # import traceback
 
 def parse_fn_markdown(markdown_text, params_key="params"):
@@ -576,7 +576,7 @@ class OpenAI_M():
 
     def od(
         self,
-        image_path,
+        image,
     ):
         """
         Perform object detection on the given image.
@@ -585,15 +585,17 @@ class OpenAI_M():
         Returns:
             str: A JSON string containing the results of the object detection.
         """
+        if isinstance(image, str):
+            image = to_img(image)
         json_str = self.invoke(
             prompt=self.od_desc,
-            images=image_path,
+            images=image,
         )
         return json_str
 
     def od_v(
         self,
-        image_path,
+        image,
         save_path,
     ):
         """
@@ -604,10 +606,9 @@ class OpenAI_M():
         Returns:
             tuple: A tuple containing the processed image and the save path.
         """
-        json_str = self.od(image_path)
-        img = draw_and_plot_boxes_from_json(json_str, image_path, save_path)
+        json_str = self.od(image)
+        img = draw_and_plot_boxes_from_json(json_str, image, save_path)
         return img, save_path
-
 
 
 class MMChatter():

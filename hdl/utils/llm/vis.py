@@ -29,6 +29,21 @@ from redis.commands.search.query import Query
 
 HF_HUB_PREFIX = "hf-hub:"
 
+def to_img(img_str):
+    if img_str.startswith("data:image"):
+        img = imgbase64_to_pilimg(img_str)
+    elif img_str.startswith("http"):
+        response = requests.get(img_str)
+        if response.status_code == 200:
+            # Read the image content from the response
+            img_data = response.content
+
+            # Load the image using PIL to determine its format
+            img = Image.open(BytesIO(img_data))
+    elif Path(img_str).is_file():
+        img = Image.open(img_str)
+    return img
+
 
 def imgurl_to_base64(image_url: str):
     """Converts an image from a URL to base64 format.
@@ -127,7 +142,7 @@ def pilimg_to_base64(pilimg):
 
 def draw_and_plot_boxes_from_json(
     json_data,
-    image_path,
+    image,
     save_path=None
 ):
     """
@@ -157,11 +172,12 @@ def draw_and_plot_boxes_from_json(
         data = json_data
 
     # Open the image
-    try:
-        img = Image.open(image_path)
-    except FileNotFoundError:
-        print(f"Image file not found at {image_path}. Please check the path.")
-        return None
+    # try:
+    #     img = Image.open(image_path)
+    # except FileNotFoundError:
+    #     print(f"Image file not found at {image_path}. Please check the path.")
+    #     return None
+    img = image
 
     draw = ImageDraw.Draw(img)
     width, height = img.size

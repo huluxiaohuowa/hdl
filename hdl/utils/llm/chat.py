@@ -578,6 +578,13 @@ class OpenAI_M():
         self,
         image_path,
     ):
+        """
+        Perform object detection on the given image.
+        Args:
+            image_path (str): The path to the image file on which to perform object detection.
+        Returns:
+            str: A JSON string containing the results of the object detection.
+        """
         json_str = self.invoke(
             prompt=self.od_desc,
             images=image_path,
@@ -589,6 +596,14 @@ class OpenAI_M():
         image_path,
         save_path,
     ):
+        """
+        Perform object detection on an image and save the result.
+        Args:
+            image_path (str): The path to the input image.
+            save_path (str): The path to save the output image with detected objects.
+        Returns:
+            tuple: A tuple containing the processed image and the save path.
+        """
         json_str = self.od(image_path)
         img = draw_and_plot_boxes_from_json(json_str, image_path, save_path)
         return img, save_path

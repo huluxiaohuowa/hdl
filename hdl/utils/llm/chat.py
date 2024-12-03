@@ -8,8 +8,9 @@ import re
 
 
 from openai import OpenAI
-from ..desc.template import FN_TEMPLATE, COT_TEMPLATE
+from ..desc.template import FN_TEMPLATE, COT_TEMPLATE, OD_TEMPLATE
 from ..desc.func_desc import TOOL_DESC
+from .vis import draw_and_plot_boxes_from_json
 import json
 # import traceback
 
@@ -132,6 +133,7 @@ class OpenAI_M():
         tools: list = None,
         tool_desc: dict = None,
         cot_desc: str = None,
+        od_desc: str = None,
         *args,
         **kwargs
     ):
@@ -189,9 +191,8 @@ class OpenAI_M():
         self.tool_info = "\n".join(self.tool_descs)
         self.tool_desc_str = "\n".join(self.tool_descs_verbose)
 
-        self.cot_desc = cot_desc
-        if not self.cot_desc:
-            self.cot_desc = COT_TEMPLATE
+        self.cot_desc = cot_desc if cot_desc else COT_TEMPLATE
+        self.od_desc = od_desc if od_desc else OD_TEMPLATE
 
     def cot(
         self,
@@ -572,6 +573,27 @@ class OpenAI_M():
             except Exception as e:
                 print(e)
                 return ""
+
+    def od(
+        self,
+        image_path,
+        save_path=None
+    ):
+        json_str = self.invoke(
+            prompt="""
+Detect all the objects in the image, return bounding boxes for all of them using the following format (DO NOT INCLUDE ANY OTHER WORDS IN YOUR ANSWER BUT ONLY THE LIST):
+[
+    {
+        "object": "object_name",
+        "bboxes": [[xmin, ymin, xmax, ymax], [xmin, ymin, xmax, ymax], ...]
+    },
+    ...
+]
+""",
+            images="https://air-example-data-2.s3.us-west-2.amazonaws.com/vllm_opensource_llava/stop_sign.jpg",
+        )
+        img = draw_and_plot_boxes_from_json(json_str, image_path, save_path)
+        return img, save_path
 
 
 class MMChatter():

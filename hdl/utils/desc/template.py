@@ -30,3 +30,14 @@ COT_TEMPLATE = """
 你的回答中应只能是 Markdown 格式，且不能包含其他多余文字或格式错误。
 以下是可用的工具：
 """
+
+OD_TEMPLATE = """
+Detect all the objects in the image, return bounding boxes for all of them using the following format (DO NOT INCLUDE ANY OTHER WORDS IN YOUR ANSWER BUT ONLY THE LIST ITSELF!):
+[
+    {
+        "object": "object_name",
+        "bboxes": [[xmin, ymin, xmax, ymax], [xmin, ymin, xmax, ymax], ...]
+    },
+    ...
+]
+"""

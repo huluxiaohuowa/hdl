@@ -8,11 +8,15 @@ import hashlib
 
 import torch
 import numpy as np
-from PIL import Image
 # from transformers import ChineseCLIPProcessor, ChineseCLIPModel
 from transformers import AutoModel
 from transformers import AutoTokenizer
 import open_clip
+
+from PIL import Image, ImageDraw, ImageFont
+import json
+import re
+import matplotlib.pyplot as plt
 # import natsort
 from redis.commands.search.field import VectorField
 from redis.commands.search.indexDefinition import IndexDefinition, IndexType
@@ -119,6 +123,87 @@ def pilimg_to_base64(pilimg):
     img_base64 = f"data:{mime_type};base64,{image_base64}"
     return img_base64
 
+
+
+def draw_and_plot_boxes_from_json(
+    json_data,
+    image_path,
+    save_path=None
+):
+    """
+    Parses the JSON data to extract bounding box coordinates,
+    scales them according to the image size, draws the boxes on the image,
+    and returns the image as a PIL object.
+
+    Args:
+        json_data (str or list): The JSON data as a string or already parsed list.
+        image_path (str): The path to the image file on which boxes are to be drawn.
+        save_path (str or None): The path to save the resulting image. If None, the image won't be saved.
+
+    Returns:
+        PIL.Image.Image: The processed image with boxes drawn on it.
+    """
+    # If json_data is a string, parse it into a Python object
+    if isinstance(json_data, str):
+        json_data = json_data.strip()
+        json_data = re.sub(r"^```json\s*", "", json_data)
+        json_data = re.sub(r"```$", "", json_data)
+        try:
+            data = json.loads(json_data)
+        except json.JSONDecodeError as e:
+            print("Failed to parse JSON data:", e)
+            return None
+    else:
+        data = json_data
+
+    # Open the image
+    try:
+        img = Image.open(image_path)
+    except FileNotFoundError:
+        print(f"Image file not found at {image_path}. Please check the path.")
+        return None
+
+    draw = ImageDraw.Draw(img)
+    width, height = img.size
+
+    # Use a commonly available font
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size=25)
+    except IOError:
+        print("Default font not found. Using a basic PIL font.")
+        font = ImageFont.load_default()
+
+    # Process and draw boxes
+    for item in data:
+        object_type = item.get("object", "unknown")
+        for bbox in item.get("bboxes", []):
+            x1, y1, x2, y2 = bbox
+            x1 = x1 * width / 1000
+            y1 = y1 * height / 1000
+            x2 = x2 * width / 1000
+            y2 = y2 * height / 1000
+            draw.rectangle([(x1, y1), (x2, y2)], outline="blue", width=5)
+            draw.text((x1, y1), object_type, fill="red", font=font)
+
+    # Plot the image using matplotlib and save it as a PIL Image
+    buf = BytesIO()
+    plt.figure(figsize=(8, 8))
+    plt.imshow(img)
+    plt.axis("off")  # Hide axes ticks
+    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+    buf.seek(0)
+
+    # Load the buffer into a PIL Image and ensure full loading into memory
+    pil_image = Image.open(buf)
+    pil_image.load()  # Ensure full data is loaded from the buffer
+
+    # Save the image if save_path is provided
+    if save_path:
+        pil_image.save(save_path)
+
+    buf.close()  # Close the buffer after use
+
+    return pil_image
 
 class ImgHandler:
     """

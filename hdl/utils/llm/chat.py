@@ -6,13 +6,15 @@ import subprocess
 from typing import Generator
 import re
 
-
 from openai import OpenAI
+from PIL import Image
+
 from ..desc.template import FN_TEMPLATE, COT_TEMPLATE, OD_TEMPLATE
 from ..desc.func_desc import TOOL_DESC
-from .vis import draw_and_plot_boxes_from_json, to_img
+from .vis import draw_and_plot_boxes_from_json, to_img, to_base64
 # import json
 # import traceback
+
 
 def parse_fn_markdown(markdown_text, params_key="params"):
     """
@@ -585,8 +587,7 @@ class OpenAI_M():
         Returns:
             str: A JSON string containing the results of the object detection.
         """
-        if isinstance(image, str):
-            image = to_img(image)
+        image = to_base64(image)
         json_str = self.invoke(
             prompt=self.od_desc,
             images=[image]

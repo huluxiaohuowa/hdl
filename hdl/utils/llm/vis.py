@@ -45,6 +45,30 @@ def to_img(img_str):
     return img
 
 
+def to_base64(img):
+    """
+    Convert an image to its base64 representation.
+    Parameters:
+    img (PIL.Image.Image or str): The image to convert. This can be a PIL Image object,
+                                  a base64 string starting with "data:image", a URL starting
+                                  with "http", or a file path to an image.
+    Returns:
+    str: The base64 representation of the image.
+    Raises:
+    TypeError: If the input is not a PIL Image object or a string.
+    """
+    if isinstance(img, Image.Image):
+        img_base64 = pilimg_to_base64(img)
+    elif isinstance(img, str):
+        if img.startswith("data:image"):
+            img_base64 = img
+        elif img.startswith("http"):
+            img_base64 = imgurl_to_base64(img)
+        elif Path(img).is_file():
+            img_base64 = imgfile_to_base64(img)
+    return img_base64
+
+
 def imgurl_to_base64(image_url: str):
     """Converts an image from a URL to base64 format.
 
@@ -177,6 +201,8 @@ def draw_and_plot_boxes_from_json(
     # except FileNotFoundError:
     #     print(f"Image file not found at {image_path}. Please check the path.")
     #     return None
+    if not isinstance(image, Image.Image):
+        image = to_img(image)
     img = image
 
     draw = ImageDraw.Draw(img)

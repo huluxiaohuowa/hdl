@@ -597,7 +597,7 @@ class OpenAI_M():
     def od_v(
         self,
         image,
-        save_path,
+        save_path: str=None,
     ):
         """
         Perform object detection on an image and save the result.

@@ -30,6 +30,19 @@ from redis.commands.search.query import Query
 HF_HUB_PREFIX = "hf-hub:"
 
 def to_img(img_str):
+    """
+    Convert an image source string to a PIL Image object.
+    The function supports three types of image sources:
+    1. Base64 encoded image strings starting with "data:image".
+    2. URLs starting with "http".
+    3. Local file paths.
+    Args:
+        img_str (str): The image source string. It can be a base64 encoded string, a URL, or a local file path.
+    Returns:
+        PIL.Image.Image: The converted image as a PIL Image object.
+    Raises:
+        ValueError: If the image source string is not valid or the image cannot be loaded.
+    """
     if img_str.startswith("data:image"):
         img = imgbase64_to_pilimg(img_str)
     elif img_str.startswith("http"):

@@ -681,10 +681,16 @@ class MMChatter():
             text=True
         )
 
-        # Only capture stdout (ignoring verbose logging)
+        # Process the output
         output = result.stdout
 
-        # Process the model's response by parsing the output
-        response = output.splitlines()[-1].strip('<assistant>')  # Assuming the last line is the model's response
+        # Extract the relevant part of the output
+        # Locate the response starting from '<assistant>' and capture everything afterwards
+        start_marker = "<assistant>"
+        if start_marker in output:
+            response_start = output.index(start_marker) + len(start_marker)
+            response = output[response_start:].strip()
+        else:
+            response = output.strip()
 
         return response

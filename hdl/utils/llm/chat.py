@@ -589,7 +589,7 @@ class OpenAI_M():
             image = to_img(image)
         json_str = self.invoke(
             prompt=self.od_desc,
-            images=image,
+            images=[image]
         )
         return json_str
 

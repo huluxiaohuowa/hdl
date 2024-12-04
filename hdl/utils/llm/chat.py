@@ -639,7 +639,10 @@ class MMChatter():
         temp: float = 0.1,
         top_p: float = 0.8,
         top_k: int = 100,
-        repeat_penalty: float = 1.05
+        repeat_penalty: float = 1.05,
+        n_context: int = 12800,
+        n_max: int = 12800,
+        ngl: int = 9999,
     ):
         """Get response from the model based on the given prompt and image.
 
@@ -664,7 +667,10 @@ class MMChatter():
             "--top-p", f"{top_p}",
             "--top-k", f"{top_k}",
             "--repeat-penalty", f"{repeat_penalty}",
-            "-p", prompt
+            "-c", f"{n_context}",
+            "-n", f"{n_max}",
+            "-p", prompt,
+            "-ngl", f"{ngl}",
         ]
 
         # Use subprocess to run the command and capture the output

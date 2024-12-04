@@ -60,16 +60,15 @@ def to_img(img_str):
 
 def to_base64(img):
     """
-    Convert an image to its base64 representation.
-    Parameters:
-    img (PIL.Image.Image or str): The image to convert. This can be a PIL Image object,
-                                  a base64 string starting with "data:image", a URL starting
-                                  with "http", or a file path to an image.
+    Convert an image to a base64 encoded string.
+
+    Args:
+        img (Union[Image.Image, str]): The image to convert, which can be a PIL Image object, a base64 string, a URL, or a local file path.
+
     Returns:
-    str: The base64 representation of the image.
-    Raises:
-    TypeError: If the input is not a PIL Image object or a string.
+        str: The image encoded as a base64 string.
     """
+
     if isinstance(img, Image.Image):
         img_base64 = pilimg_to_base64(img)
     elif isinstance(img, str):

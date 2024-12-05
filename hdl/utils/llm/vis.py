@@ -257,7 +257,7 @@ def draw_and_plot_boxes_from_json(
 
     buf.close()  # Close the buffer after use
 
-    return pil_image
+    return pil_image, save_path
 
 class ImgHandler:
     """

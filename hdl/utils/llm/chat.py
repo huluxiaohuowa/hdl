@@ -450,12 +450,12 @@ class OpenAI_M():
             str: The agent response based on the prompt.
         '''
         """
-        decision_dict = self.get_decision(prompt, **kwargs)
-        decision_dict = parse_fn_markdown(decision_dict)
+        decision_dict_str = self.get_decision(prompt, **kwargs)
+        decision_dict = parse_fn_markdown(decision_dict_str)
         if decision_dict.get("function_name", None) is None:
             return self.chat(prompt=prompt, stream=stream, **kwargs)
         else:
-            tool_result = str(self.get_tool_result(decision_dict))
+            tool_result = str(self.get_tool_result(decision_dict_str))
             prompt_final = "根据上下文回答最后的用户问题：\n上下文信息：\n"
             prompt_final += tool_result
             # prompt_final += f"\n用户的问题：\n{prompt}"
@@ -502,7 +502,7 @@ class OpenAI_M():
 
     def get_tool_result(
         self,
-        decision_dict: dict,
+        decision_dict_str: str,
     ):
         """Get the result of a tool based on the decision made.
 
@@ -513,7 +513,7 @@ class OpenAI_M():
         Returns:
             str: The result of the tool.
         """
-
+        decision_dict = parse_fn_markdown(decision_dict_str)
         func_name = decision_dict.get("function_name", None)
         if func_name is None:
             return ""

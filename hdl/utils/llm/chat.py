@@ -696,3 +696,62 @@ class MMChatter():
             response = output.strip()
 
         return response
+
+
+def object_detect(
+    image,
+    prompt: str = OD_TEMPLATE,
+    mm_server: str = None,
+    mm_port: int = None,
+    cli_dir: str = None,
+    model_dir: str = None,
+    mmproj_dir: str = None,
+    save_dir: str = None,
+):
+    resp = ""
+    cli_dir = cli_dir if cli_dir is not None else os.getenv(
+        "MM_CLI_DIR",
+        None
+    )
+    if model_dir is None:
+        model_dir = os.getenv(
+            "MM_MODEL_DIR",
+            "/home/jhu/dev/models/MiniCPM-V-2_6-gguf/ggml-model-Q4_K_M.gguf"
+        )
+    if mmproj_dir is None:
+        mmproj_dir = os.getenv(
+            "MM_PROJ_DIR",
+            "/home/jhu/dev/models/MiniCPM-V-2_6-gguf/mmproj-model-f16.gguf"
+        )
+
+    mm_server = os.getenv("LLM_SERVER", "192.168.1.232")
+    mm_port = int(os.getevn("LLM_PORT", 22299))
+
+    if cli_dir:
+        mm = MMChatter(
+            cli_dir=cli_dir,
+            model_dir=model_dir,
+            mmproj_dir=mmproj_dir
+        )
+        json_data = mm.get_resp(
+            prompt=prompt,
+            image=image
+        )
+    else:
+        llm = OpenAI_M(
+            server_ip=mm_server,
+            server_port=mm_port,
+        )
+        json_data = llm.od(image)
+    _, save_dir = draw_and_plot_boxes_from_json(
+        json_data=json_data,
+        image=image,
+        save_path=save_dir
+    )
+    resp += "Detected objects are:\n"
+    resp += json_data
+    resp =+ "\n"
+    if save_dir:
+        resp += "Picture with marks were saved at:\n"
+        resp += save_dir
+    return resp

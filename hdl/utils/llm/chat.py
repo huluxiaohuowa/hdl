@@ -277,12 +277,12 @@ class OpenAI_M():
                         return
                     # 如果不使用工具，将当前思考步骤的标题累积到当前信息中
                     else:
-                        current_info += f"\n{step_json.get("title", "")}"
-                        current_info += f"\n{step_json.get("content", "")}"
+                        current_info += f"\n{step_json.get('title', '')}"
+                        current_info += f"\n{step_json.get('content', '')}"
 
                 if step_json.get("stop_thinking", False):
-                    current_info += f"\n{step_json.get("title", "")}"
-                    current_info += f"\n{step_json.get("content", "")}"
+                    current_info += f"\n{step_json.get('title', '')}"
+                    current_info += f"\n{step_json.get('content', '')}"
                     yield n_steps, current_info, steps
                     return
                 yield n_steps, current_info, steps

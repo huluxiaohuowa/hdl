@@ -109,6 +109,21 @@ TOOL_DESC = {
 """
     },
 
+    "object_detect": {
+        "desc": """
+## 函数名：object_detect
+描述：当用户要求识别图片中的目标位置时，调用此工具，给出具体位置信息。
+参数 ：
+- image (str): 图片的路径或 url
+返回值 (str): 图片中目标的位置信息（也可能含有带有标记的渲染图片路径）
+""",
+        "md": """
+需要返回的 markdown:
+- function_name: object_detect
+- image: <image_path>
+"""
+    },
+
     "default": None
 
 }

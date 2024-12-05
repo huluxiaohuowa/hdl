@@ -739,7 +739,7 @@ def object_detect(
     )
     resp += "Detected objects are:\n"
     resp += json_data
-    resp =+ "\n"
+    resp += "\n"
     if save_dir:
         resp += "Picture with marks were saved at:\n"
         resp += save_dir

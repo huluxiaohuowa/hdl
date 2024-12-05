@@ -513,16 +513,7 @@ class OpenAI_M():
         Returns:
             str: The result of the tool.
         """
-        # decision_dict_str = self.get_decision(
-        #     prompt,
-        #     **kwargs
-        # )
-        # try:
-        #     decision_dict = parse_fn_markdown(decision_dict_str)
-        #     # decision_dict = json.loads(decision_dict_str)
-        # except Exception as e:
-        #     print(e)
-        #     return ""
+
         func_name = decision_dict.get("function_name", None)
         if func_name is None:
             return ""
@@ -532,6 +523,8 @@ class OpenAI_M():
                     if tool.__name__ == func_name:
                         tool_final = tool
                 func_kwargs = decision_dict.get("params")
+                if tool_final.__name__ == "object_detect":
+                    func_kwargs["llm"] = self
                 return tool_final(**func_kwargs)
             except Exception as e:
                 print(e)
@@ -701,8 +694,7 @@ class MMChatter():
 def object_detect(
     image,
     prompt: str = OD_TEMPLATE,
-    mm_server: str = None,
-    mm_port: int = None,
+    llm = None,
     cli_dir: str = None,
     model_dir: str = None,
     mmproj_dir: str = None,
@@ -723,9 +715,10 @@ def object_detect(
             "MM_PROJ_DIR",
             "/home/jhu/dev/models/MiniCPM-V-2_6-gguf/mmproj-model-f16.gguf"
         )
-
-    mm_server = os.getenv("LLM_SERVER", "192.168.1.232")
-    mm_port = int(os.getevn("LLM_PORT", 22299))
+    if llm is None and cli_dir is None:
+        raise ValueError("Either 'llm' or 'cli_dir' must be provided.")
+    # mm_server = os.getenv("LLM_SERVER", "192.168.1.232")
+    # mm_port = int(os.getevn("LLM_PORT", 22299))
 
     if cli_dir:
         mm = MMChatter(
@@ -738,10 +731,6 @@ def object_detect(
             image=image
         )
     else:
-        llm = OpenAI_M(
-            server_ip=mm_server,
-            server_port=mm_port,
-        )
         json_data = llm.od(image)
     _, save_dir = draw_and_plot_boxes_from_json(
         json_data=json_data,

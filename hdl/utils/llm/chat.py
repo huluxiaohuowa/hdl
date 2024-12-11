@@ -175,7 +175,7 @@ class OpenAI_M():
                 *args,
                 **kwargs
             )
-        self.tools: list = tools
+        self.tools: list = tools if tools else []
         self.tool_desc: dict = TOOL_DESC
         if tool_desc is not None:
             self.tool_desc = self.tool_desc | tool_desc

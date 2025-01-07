@@ -127,11 +127,10 @@ class OpenAI_M():
         model_path: str = "default_model",
         device: str='gpu',
         generation_kwargs: dict = None,
+        server_host: str = None,
         server_ip: str = "172.28.1.2",
         server_port: int = 8000,
         api_key: str = "dummy_key",
-        use_groq: bool = False,
-        groq_api_key: str = None,
         tools: list = None,
         tool_desc: dict = None,
         cot_desc: str = None,
@@ -160,21 +159,20 @@ class OpenAI_M():
         # self.model_path = model_path
         self.server_ip = server_ip
         self.server_port = server_port
-        self.base_url = f"http://{self.server_ip}:{str(self.server_port)}/v1"
+        self.server_host = server_host
+        if self.server_ip:
+            self.base_url = f"http://{self.server_ip}:{str(self.server_port)}/v1"
+        elif self.server_host:
+            self.base_url = self.host
         self.api_key = api_key
         self.use_groq = use_groq
-        if use_groq:
-            import groq
-            self.client = groq.Groq(
-                api_key=os.getenv("GROQ_API_KEY", groq_api_key)
-            )
-        else:
-            self.client = OpenAI(
-                base_url=self.base_url,
-                api_key=self.api_key,
-                *args,
-                **kwargs
-            )
+
+        self.client = OpenAI(
+            base_url=self.base_url,
+            api_key=self.api_key,
+            *args,
+            **kwargs
+        )
         self.tools: list = tools if tools else []
         self.tool_desc: dict = TOOL_DESC
         if tool_desc is not None:

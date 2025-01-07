@@ -148,8 +148,6 @@ class OpenAI_M():
             server_ip (str): IP address of the server. Defaults to "172.28.1.2".
             server_port (int): Port number of the server. Defaults to 8000.
             api_key (str): API key for authentication. Defaults to "dummy_key".
-            use_groq (bool): Flag to use Groq client. Defaults to False.
-            groq_api_key (str, optional): API key for Groq client.
             tools (list, optional): List of tools to be used.
             tool_desc (dict, optional): Additional tool descriptions.
             cot_desc (str, optional): Chain of Thought description.
@@ -165,7 +163,6 @@ class OpenAI_M():
         elif self.server_host:
             self.base_url = self.host
         self.api_key = api_key
-        self.use_groq = use_groq
 
         self.client = OpenAI(
             base_url=self.base_url,

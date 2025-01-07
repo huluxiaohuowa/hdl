@@ -281,14 +281,14 @@ class OpenAI_M:
 
     def get_resp(
         self,
-        client_id,
         prompt: str,
+        client_id: str = None,
         sys_info: str = None,
         assis_info: str = None,
         images: list = None,
         image_keys: tuple = ("image_url", "url"),
         stop: list[str] | None = ["USER:", "ASSISTANT:"],
-        model="default_model",
+        model: str=None,
         stream: bool = True,
         **kwargs: t.Any,
     ):
@@ -307,6 +307,8 @@ class OpenAI_M:
         Returns:
             _type_: The response object from the model.
         """
+        if not model:
+            model = self.client_conf[client_id]["model"]
 
         # Initialize the content list with at least the user's text input
         content = [

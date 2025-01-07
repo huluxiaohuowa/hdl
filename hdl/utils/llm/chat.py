@@ -159,8 +159,8 @@ class OpenAI_M:
             self.client_conf = client_conf
 
         # self.clients = {}
-        for client_id, conf in self.client_conf.items():
-            conf[client_id]["client"] = OpenAI(
+        for _, conf in self.client_conf.items():
+            conf["client"] = OpenAI(
                 base_url=conf["host"],
                 api_key=conf.get("api_key", "dummy_key"),
                 *args,

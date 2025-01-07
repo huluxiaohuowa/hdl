@@ -161,7 +161,7 @@ class OpenAI_M():
         if self.server_ip:
             self.base_url = f"http://{self.server_ip}:{str(self.server_port)}/v1"
         elif self.server_host:
-            self.base_url = self.host
+            self.base_url = self.server_host
         self.api_key = api_key
 
         self.client = OpenAI(

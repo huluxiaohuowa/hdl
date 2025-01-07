@@ -5,6 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 import subprocess
 from typing import Generator
 import re
+import yaml
 
 from openai import OpenAI
 from PIL import Image
@@ -12,8 +13,6 @@ from PIL import Image
 from ..desc.template import FN_TEMPLATE, COT_TEMPLATE, OD_TEMPLATE
 from ..desc.func_desc import TOOL_DESC
 from .vis import draw_and_plot_boxes_from_json, to_img, to_base64
-# import json
-# import traceback
 
 
 def parse_fn_markdown(markdown_text, params_key="params"):
@@ -121,16 +120,11 @@ def run_tool_with_kwargs(tool, func_kwargs):
     return tool(**func_kwargs)
 
 
-class OpenAI_M():
+class OpenAI_M:
     def __init__(
         self,
-        model_path: str = "default_model",
-        device: str='gpu',
-        generation_kwargs: dict = None,
-        server_host: str = None,
-        server_ip: str = None,
-        server_port: int = 11434,
-        api_key: str = "dummy_key",
+        client_conf: dict = None,
+        client_conf_dir: str = None,
         tools: list = None,
         tool_desc: dict = None,
         cot_desc: str = None,
@@ -148,40 +142,43 @@ class OpenAI_M():
             server_ip (str): IP address of the server. Defaults to "172.28.1.2".
             server_port (int): Port number of the server. Defaults to 8000.
             api_key (str): API key for authentication. Defaults to "dummy_key".
+            use_groq (bool): Flag to use Groq client. Defaults to False.
+            groq_api_key (str, optional): API key for Groq client.
             tools (list, optional): List of tools to be used.
             tool_desc (dict, optional): Additional tool descriptions.
             cot_desc (str, optional): Chain of Thought description.
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-        # self.model_path = model_path
-        self.server_ip = server_ip
-        self.server_port = server_port
-        self.server_host = server_host
-        if self.server_ip:
-            self.base_url = f"http://{self.server_ip}:{str(self.server_port)}/v1"
-        elif self.server_host:
-            self.base_url = self.server_host
-        self.api_key = api_key
 
-        self.client = OpenAI(
-            base_url=self.base_url,
-            api_key=self.api_key,
-            *args,
-            **kwargs
-        )
+        if client_conf is None:
+            assert client_conf_dir is not None
+            self.client_conf_path = client_conf_dir
+            self.load_clients()
+        else:
+            self.client_conf = client_conf
+
+        # self.clients = {}
+        for client_id, conf in self.client_conf.items():
+            conf[client_id]["client"] = OpenAI(
+                base_url=conf["host"],
+                api_key=conf.get("api_key", "dummy_key"),
+                *args,
+                **kwargs
+            )
+
         self.tools: list = tools if tools else []
         self.tool_desc: dict = TOOL_DESC
         if tool_desc is not None:
             self.tool_desc = self.tool_desc | tool_desc
 
         self.tool_descs = [
-            self.tool_desc[tool.__name__]['desc']
+            self.tool_desc[tool]['desc']
             for tool in self.tools
         ]
         self.tool_descs_verbose = [
-            self.tool_desc[tool.__name__]['desc']
-            + self.tool_desc[tool.__name__]['md']
+            self.tool_desc[tool]['desc']
+            + self.tool_desc[tool]['md']
             for tool in self.tools
         ]
 
@@ -191,6 +188,18 @@ class OpenAI_M():
         self.cot_desc = cot_desc if cot_desc else COT_TEMPLATE
         self.od_desc = od_desc if od_desc else OD_TEMPLATE
 
+    def load_clients(self):
+        with open(self.client_conf_path, 'r') as file:
+            data = yaml.safe_load(file)
+
+        # 更新 host 字段
+        for _, value in data.items():
+            host = value.get('host', '')
+            port = value.get('port', '')
+            if not host.startswith('http') and port:  # 确保有 port 才处理
+                value['host'] = f"http://{host}:{port}/v1"
+        self.client_conf = data
+
     def cot(
         self,
         prompt,
@@ -198,23 +207,6 @@ class OpenAI_M():
         steps: list = None,
         **kwargs
     ):
-        """
-        Execute a Chain of Thought (COT) process to iteratively generate steps
-        towards solving a given prompt, utilizing tools if necessary.
-
-        Args:
-            prompt (str): The initial question or problem to solve.
-            max_step (int, optional): Maximum number of steps to attempt. Defaults to 30.
-            steps (list, optional): List to accumulate steps taken. Defaults to None.
-            **kwargs: Additional keyword arguments for tool invocation.
-
-        Yields:
-            tuple: A tuple containing the current step number, accumulated information,
-            and the list of steps taken.
-
-        Raises:
-            Exception: If an error occurs during the parsing or tool invocation process.
-        """
         # 初始化当前信息为空字符串，用于累积后续的思考步骤和用户问题
         current_info = ""
         # 初始化步数为0，用于控制最大思考次数
@@ -235,7 +227,8 @@ class OpenAI_M():
             resp = self.invoke(
                 "现有的步骤得出来的信息：\n" + current_info + "\n用户问题：" + prompt,
                 sys_info=COT_TEMPLATE + self.tool_info,
-                assis_info = "好的，我将根据用户的问题和信息给出当前需要进行的操作或最终答案"
+                assis_info="好的，我将根据用户的问题和信息给出当前需要进行的操作或最终答案",
+                **kwargs
             )
 
             # print(f"第{n_steps}步思考结果：\n{resp}\n\n")
@@ -249,7 +242,7 @@ class OpenAI_M():
                 # 如果思考步骤中标记为停止思考，则打印所有步骤并返回最终答案
 
                 # 如果思考步骤中包含使用工具的指示，则构造工具提示并调用agent_response方法
-                if 'tool' in step_json and step_json['tool']:
+                if 'tool' in step_json and step_json['tool'] in self.tools:
                     tool_prompt = step_json["tool"] \
                         + step_json.get("title", "") \
                         + step_json.get("content", "") \
@@ -288,6 +281,7 @@ class OpenAI_M():
 
     def get_resp(
         self,
+        client_id,
         prompt: str,
         sys_info: str = None,
         assis_info: str = None,
@@ -364,7 +358,7 @@ class OpenAI_M():
             })
 
         # Call the model to generate a response
-        response = self.client.chat.completions.create(
+        response = self.client_conf[client_id]["client"].chat.completions.create(
             messages=messages,
             stream=stream,
             model=model,
@@ -468,7 +462,8 @@ class OpenAI_M():
                 )
 
     def get_decision(
-        self, prompt: str,
+        self,
+        prompt: str,
         **kwargs: t.Any,
     ):
         """Get decision based on the given prompt.
@@ -514,13 +509,14 @@ class OpenAI_M():
             return ""
         else:
             try:
+                tool_final = ''
                 for tool in self.tools:
-                    if tool.__name__ == func_name:
+                    if tool == func_name:
                         tool_final = tool
                 func_kwargs = decision_dict.get("params")
-                if tool_final.__name__ == "object_detect":
+                if tool_final == "object_detect":
                     func_kwargs["llm"] = self
-                return tool_final(**func_kwargs)
+                return getattr(self.tools, tool_final)(**func_kwargs)
             except Exception as e:
                 print(e)
                 return ""
@@ -552,14 +548,15 @@ class OpenAI_M():
             return ""
         else:
             try:
+                tool_final = ''
                 for tool in self.tools:
-                    if tool.__name__ == func_name:
+                    if tool == func_name:
                         tool_final = tool
                 func_kwargs = decision_dict.get("params")
 
                 loop = asyncio.get_running_loop()
                 with ProcessPoolExecutor() as pool:
-                    result = await loop.run_in_executor(pool, run_tool_with_kwargs, tool_final, func_kwargs)
+                    result = await loop.run_in_executor(pool, run_tool_with_kwargs, getattr(tools, tool_final), func_kwargs)
                 return result
             except Exception as e:
                 print(e)

@@ -1,7 +1,7 @@
 # DL framework by Jianxing
 
 ```bash
-pip install hdxdl
+pip install hjxdl
 ```
 
 ```python

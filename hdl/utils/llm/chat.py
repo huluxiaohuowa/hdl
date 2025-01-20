@@ -125,6 +125,7 @@ class OpenAI_M:
         self,
         client_conf: dict = None,
         client_conf_dir: str = None,
+        load_conf: bool = True,
         tools: list = None,
         tool_desc: dict = None,
         cot_desc: str = None,
@@ -150,11 +151,12 @@ class OpenAI_M:
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
-
+        self.client_conf = {}
         if client_conf is None:
             assert client_conf_dir is not None
             self.client_conf_path = client_conf_dir
-            self.load_clients()
+            if load_conf:
+                self.load_clients()
         else:
             self.client_conf = client_conf
 
@@ -187,6 +189,26 @@ class OpenAI_M:
 
         self.cot_desc = cot_desc if cot_desc else COT_TEMPLATE
         self.od_desc = od_desc if od_desc else OD_TEMPLATE
+
+    def add_client(
+        self,
+        client_id: str,
+        host: str,
+        port: int = None,
+        model: str = "default_model",
+        api_key: str = "dummy_key",
+        **kwargs
+    ):
+        self.client_conf[client_id] = {}
+        if not host.startswith('http') and port:
+            host = f"http://{host}:{port}/v1"
+        self.client_conf[client_id]['host'] = host
+        self.client_conf[client_id]['model'] = model
+        self.client_conf[client_id]['client'] = OpenAI(
+            base_url=host,
+            api_key=api_key,
+            **kwargs
+        )
 
     def load_clients(self):
         with open(self.client_conf_path, 'r') as file:

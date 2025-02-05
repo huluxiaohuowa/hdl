@@ -169,7 +169,7 @@ class OpenAIWrapper(object):
             answer_dict["contents"] = resp.choices[0].message.content
         elif resp.choices[0].finish_reason == "tool_calls":
             answer_dict["type"] = "tool_calls"
-            answer_dict["tool_parmas"] = resp.choices[0].message.tool_calls[0].function
+            answer_dict["tool_params"] = resp.choices[0].message.tool_calls[0].function
 
         return answer_dict
 

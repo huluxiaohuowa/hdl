@@ -173,27 +173,39 @@ class OpenAIWrapper(object):
 
         return answer_dict
 
-    def stream(
-        self,
-        prompt,
-        **kwargs
-    ):
-        resp = self.get_resp(
-            prompt=prompt,
-            stream=True,
-            **kwargs
-        )
+    def stream(self, prompt, **kwargs):
+        resp = self.get_resp(prompt=prompt, stream=True, **kwargs)
+
         for chunk in resp:
-            if chunk.choices[0].finish_reason == 'tool_calls':
-                answer_dict = {}
-                answer_dict["type"] = "tool_calls"
-                answer_dict["tool_parmas"] = chunk.choices[0].delta.tool_calls[0].function
-                return answer_dict
-            else:
+            try:
+                choice = chunk.choices[0]
+
+                # 如果返回了 tool_calls
+                if hasattr(choice.delta, 'tool_calls') and choice.finish_reason == 'tool_calls':
+                    tool_calls = choice.delta.tool_calls
+                    if tool_calls:  # 防止为空
+                        yield {
+                            "type": "tool_calls",
+                            "tool_params": tool_calls[0].function
+                        }
+                    return  # 直接返回，结束流式输出
+
+                # 返回文本内容
+                if hasattr(choice.delta, 'content'):
+                    yield {
+                        "type": "text",
+                        "content": choice.delta.content
+                    }
+
+            except (AttributeError, IndexError) as e:
+                # 防止意外的结构异常
                 yield {
-                    "type": "text",
-                    "content": chunk.choices[0].delta.content
+                    "type": "error",
+                    "message": f"Stream chunk error: {str(e)}"
                 }
+                return
+
+        return
 
 
 

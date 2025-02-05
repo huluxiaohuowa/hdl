@@ -147,8 +147,54 @@ class OpenAIWrapper(object):
             model=model,
             messages=messages,
             tools=tools,
-            stream=stream
+            stream=stream,
+            **kwargs
         )
         return resp
+
+    def invoke(
+        self,
+        prompt,
+        **kwargs
+    ):
+        answer_dict = {}
+
+        resp = self.get_resp(
+            prompt,
+            stream=False,
+            **kwargs
+        )
+        if resp.choices[0].finish_reason == "stop":
+            answer_dict["type"] = "text"
+            answer_dict["contents"] = resp.choices[0].message.content
+        elif resp.choices[0].finish_reason == "tool_calls":
+            answer_dict["type"] = "tool_calls"
+            answer_dict["tool_parmas"] = resp.choices[0].message.tool_calls[0].function
+
+        return answer_dict
+
+    def stream(
+        self,
+        prompt,
+        **kwargs
+    ):
+        resp = self.get_resp(
+            prompt=prompt,
+            stream=True,
+            **kwargs
+        )
+        for chunk in resp:
+            if chunk.choices[0].finish_reason == 'tool_calls':
+                answer_dict = {}
+                answer_dict["type"] = "tool_calls"
+                answer_dict["tool_parmas"] = chunk.choices[0].delta.tool_calls[0].function
+                return answer_dict
+            else:
+                yield {
+                    "type": "text",
+                    "content": chunk.choices[0].delta.content
+                }
+
+
 
 

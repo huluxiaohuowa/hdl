@@ -14,6 +14,26 @@ class OpenAIWrapper(object):
         *args,
         **kwargs
     ):
+        """
+        Initializes the client configuration for the class.
+
+        Args:
+            client_conf (dict, optional): A dictionary containing client configuration. If None,
+                client configuration will be loaded from the specified directory.
+            client_conf_dir (str, optional): The directory from which to load client configuration
+                if `client_conf` is None. Must be provided in that case.
+            load_conf (bool, optional): A flag indicating whether to load the client
+                configuration from the directory. Defaults to True.
+            *args: Variable length argument list for client initialization.
+            **kwargs: Arbitrary keyword arguments for client initialization.
+
+        Raises:
+            AssertionError: If `client_conf` is None and `client_conf_dir` is also None.
+
+        Note:
+            The method will create a client for each configuration found in `client_conf`,
+            initializing the client with the specified `base_url` and `api_key`.
+        """
         self.client_conf = {}
         if client_conf is None:
             assert client_conf_dir is not None
@@ -41,6 +61,24 @@ class OpenAIWrapper(object):
         api_key: str = "dummy_key",
         **kwargs
     ):
+        """
+        Add a new client configuration to the client manager.
+
+        This method stores the configuration details for a new client identified by the
+        provided client ID. It constructs the host URL based on the input parameters
+        and initializes an OpenAI client instance.
+
+        Args:
+            client_id (str): Unique identifier for the client.
+            host (str): Hostname or IP address of the client.
+            port (int, optional): Port number for the client connection. Defaults to None.
+            model (str, optional): Model to use for the client. Defaults to "default_model".
+            api_key (str, optional): API key for authentication. Defaults to "dummy_key".
+            **kwargs: Additional keyword arguments passed to the OpenAI client.
+
+        Raises:
+            ValueError: If both host and port are not valid for constructing a URL.
+        """
         self.client_conf[client_id] = {}
         if not host.startswith('http') and port:
             host = f"http://{host}:{port}/v1"
@@ -53,6 +91,22 @@ class OpenAIWrapper(object):
         )
 
     def load_clients(self):
+        """
+        Loads client configuration from a YAML file and updates the 'host' field
+        for each client entry, ensuring the correct URL format.
+
+        This method reads the client configuration from the specified path,
+        updates the 'host' field to include the appropriate port and the
+        'http' protocol if not already specified, and stores the updated
+        configuration in the `client_conf` attribute.
+
+        Attributes:
+            client_conf_path (str): The file path to the client configuration YAML file.
+            client_conf (dict): The updated client configuration after processing.
+
+        Returns:
+            None
+        """
         with open(self.client_conf_path, 'r') as file:
             data = yaml.safe_load(file)
 
@@ -79,6 +133,26 @@ class OpenAIWrapper(object):
         response_model = None,
         **kwargs: t.Any,
     ):
+        """
+        Generates a response from a chat model based on the given prompt and additional context.
+
+        Args:
+            prompt (str): The main text prompt to send to the chat model.
+            client_id (str, optional): Identifier for the client configuration. Defaults to None.
+            history (list, optional): A list of previous messages to provide context for the conversation. Each message should be a dictionary with "role" and "content". Defaults to None.
+            sys_info (str, optional): System-level information to set the context of the chat. Defaults to None.
+            assis_info (str, optional): Information from the assistant to be included in the conversation. Defaults to None.
+            images (list, optional): A list of images to include in the message content. Defaults to None.
+            image_keys (tuple, optional): Keys to format the image data. Must be of length 1 or 2. Defaults to ("image_url", "url").
+            model (str, optional): The model to use for generating the response. If not provided, it defaults to the one in client configuration for the given client_id.
+            tools (list, optional): List of tools to be available during the chat. Defaults to None.
+            stream (bool, optional): Whether to stream the response. Defaults to True.
+            response_model (optional): Specifies the response model to use. Defaults to None.
+            **kwargs (Any): Additional configuration parameters.
+
+        Returns:
+            Response: The response object from the chat model.
+        """
         if not model:
             model = self.client_conf[client_id]['model']
 
@@ -157,6 +231,20 @@ class OpenAIWrapper(object):
         prompt,
         **kwargs
     ):
+        """
+        Invoke the API to get a response based on the provided prompt.
+
+        Args:
+            prompt (str): The input prompt to be processed.
+            **kwargs: Additional keyword arguments to customize the API request.
+
+        Returns:
+            dict: A dictionary containing the type of response and its contents.
+                  The possible keys are:
+                  - 'type' (str): Indicates the type of response ('text' or 'tool_calls').
+                  - 'contents' (str, optional): The text content if the response type is 'text'.
+                  - 'tool_params' (dict, optional): The parameters of the tool called if the response type is 'tool_calls'.
+        """
         answer_dict = {}
 
         resp = self.get_resp(
@@ -174,6 +262,24 @@ class OpenAIWrapper(object):
         return answer_dict
 
     def stream(self, prompt, **kwargs):
+        """
+        Streams responses based on the provided prompt, yielding chunks of data.
+
+        This function calls the `get_resp` method with the prompt and additional keyword arguments,
+        streaming the response in chunks. It processes each chunk to yield either tool call parameters
+        or textual content. If an error occurs while processing the chunks, it yields an error message.
+
+        Args:
+            prompt (str): The input prompt to generate responses for.
+            **kwargs: Additional keyword arguments to be passed to the `get_resp` method.
+
+        Yields:
+            dict: A dictionary with the following possible keys:
+                - type (str): Indicates the type of the response ('tool_calls', 'text', or 'error').
+                - tool_params (dict, optional): Parameters of the tool call if the type is 'tool_calls'.
+                - content (str, optional): The generated text content if the type is 'text'.
+                - message (str, optional): An error message if the type is 'error'.
+        """
         resp = self.get_resp(prompt=prompt, stream=True, **kwargs)
 
         for chunk in resp:

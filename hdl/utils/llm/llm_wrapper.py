@@ -2,6 +2,7 @@ import yaml
 import typing as t
 
 from openai import OpenAI
+import instructor
 
 
 class OpenAIWrapper(object):
@@ -63,7 +64,6 @@ class OpenAIWrapper(object):
                 value['host'] = f"http://{host}:{port}/v1"
         self.client_conf = data
 
-
     def get_resp(
         self,
         prompt,
@@ -76,13 +76,17 @@ class OpenAIWrapper(object):
         model: str=None,
         tools: list = None,
         stream: bool = True,
+        response_model = None,
         **kwargs: t.Any,
     ):
+        if not model:
+            model = self.client_conf[client_id]['model']
 
         client = self.client_conf[client_id]['client']
+        if response_model:
+            client = instructor.from_openai(client)
+
         messages = []
-        if history:
-            messages = history
 
         if sys_info:
             messages.append({
@@ -90,6 +94,17 @@ class OpenAIWrapper(object):
                 "content": sys_info
             })
 
+        if history:
+            messages.extend(history)
+            # history 需要符合以下格式，其中system不是必须
+            # history = [
+            #     {"role": "system", "content": "You are a helpful assistant."},
+            #     {"role": "user", "content": "message 1 content."},
+            #     {"role": "assistant", "content": "message 2 content"},
+            #     {"role": "user", "content": "message 3 content"},
+            #     {"role": "assistant", "content": "message 4 content."},
+            #     {"role": "user", "content": "message 5 content."}
+            # ]
 
         if not model:
             model = self.client_conf[client_id]["model"]
@@ -121,4 +136,19 @@ class OpenAIWrapper(object):
             "role": "user",
             "content": content
         })
+
+        if assis_info:
+            messages.append({
+                "role": "assistant",
+                "content": assis_info
+            })
+
+        resp = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=tools,
+            stream=stream
+        )
+        return resp
+
 

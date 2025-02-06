@@ -3,7 +3,7 @@ TOOL_DICT = {
         "type": "function",
         "function": {
             "name": "get_weather",
-            "description": "Get current temperature for a given location.",
+            "description": "仅在用户明确询问天气、气候、气温等信息时，获取指定城市的天气情况。",
             "parameters": {
                 "type": "object",
                 "properties": {

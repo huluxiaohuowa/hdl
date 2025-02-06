@@ -322,7 +322,7 @@ class OpenAIWrapper(object):
                 choice = chunk.choices[0]
 
                 # 如果返回了 tool_calls
-                if hasattr(choice.delta, 'tool_calls') and choice.finish_reason == 'tool_calls':
+                if hasattr(choice.delta, 'tool_calls') and choice.delta.tool_calls:
                     tool_calls = choice.delta.tool_calls
                     if tool_calls:  # 防止为空
                         yield {
@@ -332,7 +332,7 @@ class OpenAIWrapper(object):
                     return  # 直接返回，结束流式输出
 
                 # 返回文本内容
-                if hasattr(choice.delta, 'content'):
+                elif hasattr(choice.delta, 'content'):
                     yield {
                         "type": "text",
                         "content": choice.delta.content

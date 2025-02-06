@@ -2,7 +2,6 @@ import yaml
 import typing as t
 
 from openai import OpenAI
-import instructor
 
 
 class OpenAIWrapper(object):
@@ -33,6 +32,12 @@ class OpenAIWrapper(object):
         Note:
             The method will create a client for each configuration found in `client_conf`,
             initializing the client with the specified `base_url` and `api_key`.
+        Examples:
+            >>> llm = OpenAIWrapper(
+            >>>     client_conf_dir="/some/path/model_conf.yaml",
+            >>>     # load_conf=False
+            >>> )
+)
         """
         self.client_conf = {}
         if client_conf is None:
@@ -78,6 +83,13 @@ class OpenAIWrapper(object):
 
         Raises:
             ValueError: If both host and port are not valid for constructing a URL.
+        Examples:
+            >>> llm.add_client(
+            >>>     client_id="rone",
+            >>>     host="127.0.0.1",
+            >>>     port=22299,
+            >>>     model="ictrek/rone:1.5b32k",
+            >>> )
         """
         self.client_conf[client_id] = {}
         if not host.startswith('http') and port:
@@ -158,6 +170,7 @@ class OpenAIWrapper(object):
 
         client = self.client_conf[client_id]['client']
         if response_model:
+            import instructor #TODO 有些模型支持这个 instructor 的结构化输出，但实际上它调用的还是openai api的功能，以后适时删除或补全
             client = instructor.from_openai(client)
 
         messages = []
@@ -244,6 +257,15 @@ class OpenAIWrapper(object):
                   - 'type' (str): Indicates the type of response ('text' or 'tool_calls').
                   - 'contents' (str, optional): The text content if the response type is 'text'.
                   - 'tool_params' (dict, optional): The parameters of the tool called if the response type is 'tool_calls'.
+
+        Examples:
+            >>> llm.invoke(
+            >>>     client_id="glm_4_flash",
+            >>>     prompt="深圳天气怎么样？",
+            >>>     tools=[TOOL_DICT['get_weather']],
+            >>> )
+            {'type': 'tool_calls',
+             'tool_parmas': Function(arguments='{"location": "Shenzhen"}', name='get_weather')}
         """
         answer_dict = {}
 
@@ -279,6 +301,16 @@ class OpenAIWrapper(object):
                 - tool_params (dict, optional): Parameters of the tool call if the type is 'tool_calls'.
                 - content (str, optional): The generated text content if the type is 'text'.
                 - message (str, optional): An error message if the type is 'error'.
+
+        Examplse:
+            >>> resp = llm.stream(
+            >>>     client_id="r1", #此模型可以进行cot
+            >>>     prompt=prompt,
+            >>>     # tools=[TOOL_DICT['get_weather']],
+            >>> )
+            >>> for i in resp:
+            >>>     if i['type'] == 'text' and i['content']:
+            >>>         print(i['content'], flush=True, end="")
         """
         resp = self.get_resp(prompt=prompt, stream=True, **kwargs)
 
@@ -312,7 +344,3 @@ class OpenAIWrapper(object):
                 return
 
         return
-
-
-
-

@@ -203,7 +203,10 @@ class OpenAIWrapper(object):
         elif len(image_keys) == 1:
             image_keys = (image_keys[0],) * 3
 
-        content = []
+        content = [{
+            "type": "text",
+            "text": prompt
+        }]
         if images:
             if isinstance(images, str):
                 images = [images]

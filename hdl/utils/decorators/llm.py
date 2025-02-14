@@ -13,8 +13,10 @@ def measure_stream_performance(func):
         # 初始化计时和统计变量
         first_char_time = None
         total_chars = 0
+        total_tokens = 0
 
         for i in stream:
+            total_tokens += 1
             if i['type'] == 'text' and i['content']:
                 if first_char_time is None:
                     # 第一次输出字符的时间
@@ -31,12 +33,16 @@ def measure_stream_performance(func):
 
         # 每秒输出的字符数
         chars_per_second = total_chars / total_time if total_time > 0 else 0
+        tokens_per_second = total_tokens / total_time if total_time > 0 else 0
 
         # 打印统计信息
         print("\n--- Statistics ---")
         print(f"Time to first character: {time_to_first_char:.2f} seconds")
         print(f"Total time: {total_time:.2f} seconds")
+        print(f"Total characters: {total_chars}")
+        print(f"Total tokens: {total_tokens}")
         print(f"Characters per second: {chars_per_second:.2f}")
+        print(f"Tokens per second: {tokens_per_second:.2f}")
 
     return wrapper
 

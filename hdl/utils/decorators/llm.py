@@ -2,6 +2,23 @@ import time
 from functools import wraps
 
 def measure_stream_performance(func):
+    """
+    Measures the performance of a streaming function by tracking the time taken to output characters and the rate of character and token generation.
+
+    Args:
+        func (callable): The streaming function to be measured. It should return a generator that yields dictionaries containing 'type' and 'content' keys.
+
+    Returns:
+        callable: A wrapper function that performs the performance measurement and prints statistics related to the streaming output.
+
+    Statistics Printed:
+        - Time to first character (in seconds)
+        - Total time taken for the execution (in seconds)
+        - Total number of characters output
+        - Total number of tokens processed
+        - Characters output per second
+        - Tokens processed per second
+    """
     @wraps(func)
     def wrapper(*args, **kwargs):
         # 开始计时
@@ -54,6 +71,18 @@ def run_llm_stream(
     prompt,
     **kwargs
 ):
+    """
+    Run a language model stream with the given parameters.
+
+    Args:
+        llm (object): The language model object used to generate responses.
+        client_id (str): The unique identifier for the client making the request.
+        prompt (str): The input prompt to which the language model should respond.
+        **kwargs: Additional keyword arguments to customize the request.
+
+    Returns:
+        iterable: An iterable response stream from the language model.
+    """
     resp = llm.stream(
         client_id=client_id,
         prompt=prompt,

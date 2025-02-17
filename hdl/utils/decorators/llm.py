@@ -89,22 +89,3 @@ def run_llm_stream(
         **kwargs
     )
     return resp
-
-    def embedding(
-        self,
-        client_id: str,
-        texts: list[str],
-        model: str = None,
-        **kwargs
-    ):
-        if not model:
-            model = self.client_conf[client_id]['model']
-
-        client = self.client_conf[client_id]['client']
-        response = client.embeddings.create(
-            input=texts,
-            model=model,
-            **kwargs
-        )
-
-        return [i.embedding for i in response.data]

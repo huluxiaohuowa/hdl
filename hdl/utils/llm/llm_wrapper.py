@@ -56,6 +56,8 @@ class OpenAIWrapper(object):
                 *args,
                 **kwargs
             )
+            if "client_type" not in conf:
+                conf["client_type"] = "chat"
 
     def add_client(
         self,
@@ -96,6 +98,7 @@ class OpenAIWrapper(object):
             host = f"http://{host}:{port}/v1"
         self.client_conf[client_id]['host'] = host
         self.client_conf[client_id]['model'] = model
+        self.client_conf[client_id]['client_type'] = client_type
         self.client_conf[client_id]['client'] = OpenAI(
             base_url=host,
             api_key=api_key,
@@ -347,3 +350,35 @@ class OpenAIWrapper(object):
                 return
 
         return
+
+    def embedding(
+        self,
+        client_id: str,
+        texts: list[str],
+        model: str = None,
+        **kwargs
+    ):
+        """
+        Generates embeddings for a list of texts using a specified model.
+
+        Args:
+            client_id (str): The ID of the client to use for generating embeddings.
+            texts (list[str]): A list of texts for which to generate embeddings.
+            model (str, optional): The model to use for generating embeddings.
+                If not provided, the model specified in the client configuration will be used.
+            **kwargs: Additional keyword arguments to be passed to the client embedding creation method.
+
+        Returns:
+            list: A list of embeddings corresponding to the input texts.
+        """
+        if not model:
+            model = self.client_conf[client_id]['model']
+
+        client = self.client_conf[client_id]['client']
+        response = client.embeddings.create(
+            input=texts,
+            model=model,
+            **kwargs
+        )
+
+        return [i.embedding for i in response.data]

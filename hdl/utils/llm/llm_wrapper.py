@@ -98,7 +98,7 @@ class OpenAIWrapper(object):
             host = f"http://{host}:{port}/v1"
         self.client_conf[client_id]['host'] = host
         self.client_conf[client_id]['model'] = model
-        self.client_conf[client_id]['client_type'] = client_type
+        self.client_conf[client_id]['client_type'] = kwargs.pop("client_type", "chat")
         self.client_conf[client_id]['client'] = OpenAI(
             base_url=host,
             api_key=api_key,

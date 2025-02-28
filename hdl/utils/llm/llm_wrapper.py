@@ -144,6 +144,7 @@ class OpenAIWrapper(object):
         image_keys: tuple = ("image_url", "url"),
         model: str=None,
         tools: list = None,
+        tool_choice: str = "auto",
         stream: bool = True,
         response_model = None,
         **kwargs: t.Any,
@@ -236,13 +237,22 @@ class OpenAIWrapper(object):
                 "content": assis_info
             })
 
-        resp = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=tools,
-            stream=stream,
-            **kwargs
-        )
+        if tools:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=tools,
+                tool_choice=tool_choice
+                stream=stream,
+                **kwargs
+            )
+        else:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                stream=stream,
+                **kwargs
+            )
         return resp
 
     def invoke(

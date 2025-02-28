@@ -242,7 +242,7 @@ class OpenAIWrapper(object):
                 model=model,
                 messages=messages,
                 tools=tools,
-                tool_choice=tool_choice
+                tool_choice=tool_choice,
                 stream=stream,
                 **kwargs
             )

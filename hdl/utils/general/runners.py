@@ -18,9 +18,17 @@ def execute_code(code):
         # Execute the code in a subprocess for safety
         print(code)
         python_path = sys.executable  # 获取当前 Python 解释器路径
+        python_path = sys.executable
         result = subprocess.run(
             [
                 python_path,  # 使用当前 conda 环境中的 Python
+                '-c',
+                code
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+                python_path,
                 '-c',
                 code
             ],
@@ -119,8 +127,20 @@ def count_character_occurrences(text, char):
 #     # 等待进程结束
 #     process.wait()
 
-
 def run_cmd(cmd: str):
+    """
+    Executes a command in a subprocess.
+
+    This function receives a command string, splits it into separate arguments,
+    and then executes it in a subprocess. The output of the subprocess is
+    neither redirected to stdout nor stderr.
+
+    Args:
+        cmd (str): The command to execute.
+
+    Returns:
+        None
+    """
     command = cmd.split(" ")
 
     # 直接执行命令，让 stdout 和 stderr 直接流式输出到终端
@@ -128,3 +148,4 @@ def run_cmd(cmd: str):
 
     # 等待进程执行完
     process.wait()
+

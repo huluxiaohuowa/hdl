@@ -45,7 +45,7 @@ def measure_stream_performance(func):
 
         # 总时间计算
         end_time = time.time()
-        total_time = end_time - start_time
+        total_time = end_time - first_char_time
         time_to_first_char = first_char_time - start_time if first_char_time else total_time
 
         # 每秒输出的字符数

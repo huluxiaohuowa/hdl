@@ -142,6 +142,8 @@ class OpenAIWrapper(object):
         assis_info: str = None,
         images: list = None,
         image_keys: tuple = ("image_url", "url"),
+        videos: list = None,
+        video_keys: tuple = ("video_url", "url"),
         model: str=None,
         tools: list = None,
         tool_choice: str = "auto",
@@ -207,10 +209,30 @@ class OpenAIWrapper(object):
         elif len(image_keys) == 1:
             image_keys = (image_keys[0],) * 3
 
+        if isinstance(video_keys, str):
+            video_keys = (video_keys,) * 3
+        elif len(video_keys) == 2:
+            video_keys = (video_keys[0],) + tuple(video_keys)
+        elif len(video_keys) == 1:
+            video_keys = (video_keys[0],) * 3
+
         content = [{
             "type": "text",
             "text": prompt
         }]
+
+        if videos:
+            if isinstance(videos, str):
+                images = [videos]
+            for video in videos:
+                content.append({
+                    "type": video_keys[0],
+                    video_keys[1]: {
+                        video_keys[2]: img
+                    }
+                })
+
+
         if images:
             if isinstance(images, str):
                 images = [images]
@@ -221,8 +243,7 @@ class OpenAIWrapper(object):
                         image_keys[2]: img
                     }
                 })
-        else:
-            # If no images are provided, content is simply the prompt text
+        if (not images) and (not videos):
             content = prompt
 
         # Add the user's input as a message

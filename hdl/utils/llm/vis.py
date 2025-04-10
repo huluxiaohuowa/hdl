@@ -24,6 +24,13 @@ from hdl.jupyfuncs.show.pbar import tqdm
 from redis.commands.search.query import Query
 
 
+from decord import VideoReader, cpu
+
+import base64
+from io import BytesIO
+from PIL import Image
+import numpy as np
+import requests
 # from ..database_tools.connect import conn_redis
 
 
@@ -731,4 +738,65 @@ class ImgHandler:
         return results
 
 
+def to_video_base64(video_path, max_frames=80, is_fps_sampling=True):
+    """
+    Converts a video file or a video from a given URL to a list of base64 encoded image frames.
 
+    Args:
+        video_path (str): The path to the video file or the URL of the video.
+        max_frames (int, optional): The maximum number of frames to return. Defaults to 80.
+        is_fps_sampling (bool, optional): A flag to indicate whether to sample frames based on average FPS. Defaults to True.
+
+    Returns:
+        list: A list of base64 encoded strings representing the sampled frames of the video.
+
+    Raises:
+        Exception: If the video cannot be loaded or if the URL is unreachable.
+
+    Note:
+        This function uses the VideoReader class for reading video frames and requires the necessary libraries for handling images and base64 encoding.
+    """
+    if video_path.startswith("http") or video_path.startswith("https"):
+        response = requests.get(video_path)
+        if response.status_code == 200:
+            video_path = BytesIO(response.content)
+        else:
+            print('failed to load the video')
+
+        vr = VideoReader(video_path, ctx=cpu(0), num_threads=1)
+        total_frame_num = len(vr)
+        if is_fps_sampling:
+            # FPS Sampling
+            avg_fps = round(vr.get_avg_fps())
+            frame_idx = [i for i in range(
+                0, total_frame_num, avg_fps)]
+            if len(frame_idx) > max_frames:
+                uniform_sampled_frames = np.linspace(
+                    0, total_frame_num - 1, max_frames, dtype=int
+                )
+                frame_idx = uniform_sampled_frames.tolist()
+            print(frame_idx)
+        else:
+            # uniform sampling
+            if total_frame_num > max_frames:
+                uniform_sampled_frames = np.linspace(
+                    0, total_frame_num - 1, max_frames, dtype=int
+                )
+                frame_idx = uniform_sampled_frames.tolist()
+            else:
+                frame_idx = [i for i in range(0, total_frame_num)]
+            print(frame_idx)
+
+        frames = vr.get_batch(frame_idx).asnumpy()
+        print("actual frames", len(frames))
+
+        base64_frames = []
+        for frame in frames:
+            img = Image.fromarray(frame)
+            output_buffer = BytesIO()
+            img.save(output_buffer, format="PNG")
+
+            byte_data = output_buffer.getvalue()
+            base64_str = base64.b64encode(byte_data).decode("utf-8")
+            base64_frames.append(base64_str)
+        return base64_frames

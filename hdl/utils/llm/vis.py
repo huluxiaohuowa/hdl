@@ -799,4 +799,4 @@ def to_video_base64(video_path, max_frames=80, is_fps_sampling=True):
             byte_data = output_buffer.getvalue()
             base64_str = base64.b64encode(byte_data).decode("utf-8")
             base64_frames.append(base64_str)
-        return base64_frames
+        return f"data:video/png;base64,{base64_frames}"

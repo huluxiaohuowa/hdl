@@ -228,7 +228,7 @@ class OpenAIWrapper(object):
                 content.append({
                     "type": video_keys[0],
                     video_keys[1]: {
-                        video_keys[2]: img
+                        video_keys[2]: video
                     }
                 })
 

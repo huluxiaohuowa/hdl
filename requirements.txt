@@ -12,3 +12,4 @@ open_clip_torch
 natsort
 matplotlib
 instructor
+decord

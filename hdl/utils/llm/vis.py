@@ -24,7 +24,7 @@ from hdl.jupyfuncs.show.pbar import tqdm
 from redis.commands.search.query import Query
 
 
-from decord import VideoReader, cpu
+# from decord import VideoReader, cpu
 
 import base64
 from io import BytesIO
@@ -739,6 +739,7 @@ class ImgHandler:
 
 
 def to_video_base64(video_path, max_frames=80, is_fps_sampling=True):
+    from decord import VideoReader, cpu
     """
     Converts a video file or a video from a given URL to a list of base64 encoded image frames.
 

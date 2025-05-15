@@ -138,14 +138,15 @@ def fill_descriptions(
     client,
     input_json,
     output_json,
-    output_dir
+    output_dir,
+    model
 ):
     with open(input_json, "r", encoding="utf-8") as f:
         scenes = json.load(f)
 
     for scene in tqdm(scenes, desc="生成场景描述"):
         img_path = os.path.join(output_dir, scene["image"])
-        scene["description"] = describe_image(img_path, client=client)
+        scene["description"] = describe_image(img_path, client=client, model=model)
         scene.pop("image", None)
 
     with open(output_json, "w", encoding="utf-8") as f:
@@ -182,7 +183,8 @@ class SceneDetector(object):
 
     def detect(
         self,
-        out_dir
+        out_dir,
+        model
     ):
         output_csv = detect_scenes_cli(self.video_file, out_dir)
         # df = pd.read_csv(output_csv, skiprows=1)
@@ -193,6 +195,7 @@ class SceneDetector(object):
         fill_descriptions(
             self.temp_json,
             self.final_json,
-            out_dir
+            out_dir,
+            model=model
         )
 

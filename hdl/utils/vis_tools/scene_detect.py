@@ -30,6 +30,7 @@ def detect_scenes_cli(video_path, output_dir, threshold=20):
 
     return csv_path
 
+
 def read_start_frames_from_csv(csv_path):
     df = pd.read_csv(csv_path, skiprows=1)
     return df['Start Frame'].astype(int).tolist()
@@ -97,7 +98,7 @@ def describe_image(
     image_path,
     client,
     model: str = "default_model",
-    sys_info: str = str = (
+    sys_info: str = (
         "你是一个擅长视频场景理解的 AI，请根据提供的拼图图像，生成统一格式的视频场景描述。\n"
         "请包括：\n"
         "1. 场景中发生的主要事件或动作。\n"
@@ -133,7 +134,12 @@ def describe_image(
         return "描述生成失败"
 
 
-def fill_descriptions(input_json, output_json, output_dir):
+def fill_descriptions(
+    client,
+    input_json,
+    output_json,
+    output_dir
+):
     with open(input_json, "r", encoding="utf-8") as f:
         scenes = json.load(f)
 
@@ -147,5 +153,46 @@ def fill_descriptions(input_json, output_json, output_dir):
 
     print(f"✅ 完成：{output_json}")
 
+
 class SceneDetector(object):
-    pass
+    def __init__(
+        self,
+        client,
+        video_file,
+        pre_processing: bool = False,
+        temp_json: str = None,
+        final_json: str = None
+    ):
+        self.client = client
+        self.video_file = video_file
+        self.pre_processsing = pre_processing
+        self.temp_json = temp_json
+        self.final_json = final_json
+
+        if not self.temp_json:
+            self.temp_json = self.video_file + ".tmp.json"
+        if not self.final_json
+            self.final_json = self.video_file + ".final.json"
+
+        if self.pre_processsing:
+            self.pre_process()
+
+    def pre_process(self):
+        pass
+
+    def detect(
+        self,
+        out_dir
+    ):
+        output_csv = detect_scenes_cli(self.video_file, out_dir)
+        # df = pd.read_csv(output_csv, skiprows=1)
+        # df = read_start_frames_from_csv(output_csv)
+        starts = read_start_frames_from_csv(output_csv)
+        extract_frames_with_cv(self.video_file, starts, out_dir)
+        generate_json_template(starts, out_dir, self.temp_json)
+        fill_descriptions(
+            self.temp_json,
+            self.final_json,
+            out_dir
+        )
+

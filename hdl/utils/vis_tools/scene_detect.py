@@ -171,7 +171,7 @@ class SceneDetector(object):
 
         if not self.temp_json:
             self.temp_json = self.video_file + ".tmp.json"
-        if not self.final_json
+        if not self.final_json:
             self.final_json = self.video_file + ".final.json"
 
         if self.pre_processsing:

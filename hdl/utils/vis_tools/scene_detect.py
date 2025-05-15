@@ -184,13 +184,14 @@ class SceneDetector(object):
     def detect(
         self,
         out_dir,
-        model
+        model,
+        grid_size=(3, 3)
     ):
         output_csv = detect_scenes_cli(self.video_file, out_dir)
         # df = pd.read_csv(output_csv, skiprows=1)
         # df = read_start_frames_from_csv(output_csv)
         starts = read_start_frames_from_csv(output_csv)
-        extract_frames_with_cv(self.video_file, starts, out_dir)
+        extract_frames_with_cv(self.video_file, starts, out_dir, grid_size=grid_size)
         generate_json_template(starts, out_dir, self.temp_json)
         fill_descriptions(
             self.client,

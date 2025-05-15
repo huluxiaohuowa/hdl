@@ -13,7 +13,6 @@ import subprocess
 
 
 def detect_scenes_cli(video_path, output_dir, threshold=20):
-    """Await docstring generation..."""
     video_path = Path(video_path)
     output_dir = Path(output_dir)
     # output_dir = video_path.parent

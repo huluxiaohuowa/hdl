@@ -193,6 +193,7 @@ class SceneDetector(object):
         extract_frames_with_cv(self.video_file, starts, out_dir)
         generate_json_template(starts, out_dir, self.temp_json)
         fill_descriptions(
+            self.client,
             self.temp_json,
             self.final_json,
             out_dir,

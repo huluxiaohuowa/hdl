@@ -75,6 +75,7 @@ def to_base64(img):
     Returns:
         str: The image encoded as a base64 string.
     """
+    img_base64=""
 
     if isinstance(img, Image.Image):
         img_base64 = pilimg_to_base64(img)

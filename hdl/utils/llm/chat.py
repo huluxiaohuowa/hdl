@@ -310,6 +310,71 @@ class OpenAI_M:
         images: list = None,
         image_keys: tuple = ("image_url", "url"),
         stop: list[str] | None = ["USER:", "ASSISTANT:"],
+        model: str = None,
+        stream: bool = True,
+        **kwargs: t.Any,
+    ):
+        """Prepare and send a request to the model, and return the model's response."""
+        if not model:
+            model = self.client_conf[client_id]["model"]
+
+        # === 1️⃣ 准备输入 ===
+        content = [{"type": "text", "text": prompt}]
+        if isinstance(image_keys, str):
+            image_keys = (image_keys,) * 3
+        elif len(image_keys) == 2:
+            image_keys = (image_keys[0],) + tuple(image_keys)
+        elif len(image_keys) == 1:
+            image_keys = (image_keys[0],) * 3
+
+        if images:
+            if isinstance(images, str):
+                images = [images]
+            for img in images:
+                content.append({
+                    "type": image_keys[0],
+                    image_keys[1]: {image_keys[2]: img}
+                })
+        else:
+            content = prompt
+
+        # === 2️⃣ 构造 messages（兼容旧逻辑） ===
+        messages = []
+        if sys_info:
+            messages.append({"role": "system", "content": sys_info})
+        messages.append({"role": "user", "content": content})
+        if assis_info:
+            messages.append({"role": "assistant", "content": assis_info})
+
+        # === 3️⃣ 改成 responses.create ===
+        client = self.client_conf[client_id]["client"]
+
+        if stream:
+            response = client.responses.create(
+                model=model,
+                input=messages,       # 注意：新版 responses 接口直接用 "input"
+                stream=True,
+                **kwargs
+            )
+        else:
+            response = client.responses.create(
+                model=model,
+                input=messages,
+                stream=False,
+                **kwargs
+            )
+
+        return response
+
+    def get_resp_legacy(
+        self,
+        prompt: str,
+        client_id: str = None,
+        sys_info: str = None,
+        assis_info: str = None,
+        images: list = None,
+        image_keys: tuple = ("image_url", "url"),
+        stop: list[str] | None = ["USER:", "ASSISTANT:"],
         model: str=None,
         stream: bool = True,
         **kwargs: t.Any,

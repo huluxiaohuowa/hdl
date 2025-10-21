@@ -152,6 +152,214 @@ class OpenAIWrapper(object):
         **kwargs: t.Any,
     ):
         """
+        与上层保持完全兼容：内部改用 responses.create，
+        但返回值/流式 chunk 仍然伪装成 chat.completions 的结构。
+        """
+        if not model:
+            model = self.client_conf[client_id]['model']
+
+        client = self.client_conf[client_id]['client']
+        if response_model:
+            import instructor
+            client = instructor.from_openai(client)
+
+        # ===== 构造 messages（保持你原有逻辑）=====
+        messages = []
+        if sys_info:
+            messages.append({"role": "system", "content": sys_info})
+        if history:
+            messages.extend(history)
+
+        # 规范化 media key（三元组）
+        def _triple_keys(keys):
+            if isinstance(keys, str):
+                return (keys,)*3
+            if len(keys) == 2:
+                return (keys[0],) + tuple(keys)
+            if len(keys) == 1:
+                return (keys[0],)*3
+            return keys
+
+        image_keys = _triple_keys(image_keys)
+        video_keys = _triple_keys(video_keys)
+
+        content = [{"type": "text", "text": prompt}]
+        if videos:
+            if isinstance(videos, str):
+                videos = [videos]
+            for v in videos:
+                content.append({
+                    "type": video_keys[0],
+                    video_keys[1]: {video_keys[2]: v}
+                })
+
+        if images:
+            if isinstance(images, str):
+                images = [images]
+            for img in images:
+                content.append({
+                    "type": image_keys[0],
+                    image_keys[1]: {image_keys[2]: img}
+                })
+
+        if (not images) and (not videos):
+            content = prompt
+
+        messages.append({"role": "user", "content": content})
+        if assis_info:
+            messages.append({"role": "assistant", "content": assis_info})
+
+        # ===== Responses API 调用 =====
+        # 注意：Responses 同时支持 messages 形状；tools 也直接传 tools / tool_choice。
+        if stream:
+            # --- 流式：返回一个生成器，伪装成 chat.completions 的 chunk 结构 ---
+            #   你的上层 `for chunk in resp:` 会收到具有
+            #   chunk.choices[0].delta.content / .tool_calls 的对象
+            resp_stream = client.responses.create(
+                model=model,
+                messages=messages,
+                tools=tools if tools else None,
+                tool_choice=tool_choice if tools else None,
+                stream=True,
+                **kwargs
+            )
+
+            # 适配层：把 Responses 的事件流，转成 Chat Completions 风格的 chunk
+            from types import SimpleNamespace
+            def _wrap_delta_text(text):
+                # -> chunk.choices[0].delta.content
+                delta = SimpleNamespace(content=text)
+                choice = SimpleNamespace(delta=delta)
+                return SimpleNamespace(choices=[choice])
+
+            def _wrap_delta_tool_call(name, arguments_fragment):
+                # -> chunk.choices[0].delta.tool_calls[0].function.{name, arguments}
+                func = SimpleNamespace(name=name, arguments=arguments_fragment)
+                tool_call = SimpleNamespace(function=func)
+                delta = SimpleNamespace(content=None, tool_calls=[tool_call])
+                choice = SimpleNamespace(delta=delta)
+                return SimpleNamespace(choices=[choice])
+
+            def _generator():
+                # SDK 的 Responses 流每个 event 有 event.type
+                # 我们尽量覆盖主流事件名；未知事件直接忽略
+                tool_args_acc = {}  # 累积每个工具参数（按 id 聚合）
+                tool_name_cache = {}
+
+                for event in resp_stream:
+                    et = getattr(event, "type", None)
+
+                    # 文本增量
+                    if et == "response.output_text.delta":
+                        delta_text = getattr(event, "delta", None)
+                        if delta_text:
+                            yield _wrap_delta_text(delta_text)
+
+                    # 文本结束（可忽略，上层会基于yield的终止判断）
+                    elif et == "response.output_text.done":
+                        pass
+
+                    # 工具调用参数增量
+                    elif et in ("response.tool_call.delta", "response.function_call.delta"):
+                        # 常见字段：event.id, event.name, event.delta / event.arguments_delta
+                        call_id = getattr(event, "id", None)
+                        name = getattr(event, "name", None) or tool_name_cache.get(call_id)
+                        args_delta = getattr(event, "arguments_delta", None) or getattr(event, "delta", "")
+
+                        if call_id:
+                            tool_name_cache.setdefault(call_id, name or "")
+                            tool_args_acc.setdefault(call_id, "")
+                            tool_args_acc[call_id] += (args_delta or "")
+
+                        # 也把这一小段增量向上抛（让你上层能尽快看到 tool_calls）
+                        yield _wrap_delta_tool_call(name or "", args_delta or "")
+
+                    # 工具调用完成（把完整参数再抛一次，便于上层一次性拿到）
+                    elif et in ("response.tool_call.done", "response.function_call.done"):
+                        call_id = getattr(event, "id", None)
+                        full_name = tool_name_cache.get(call_id, "")
+                        full_args = tool_args_acc.get(call_id, "")
+                        yield _wrap_delta_tool_call(full_name, full_args)
+
+                    # 其它事件（如 response.completed / response.error 等）
+                    else:
+                        # 可以按需扩展，这里静默忽略
+                        pass
+
+            return _generator()
+
+        else:
+            # --- 非流式：把 Responses 同步结果适配成 chat.completions 风格 ---
+            resp = client.responses.create(
+                model=model,
+                messages=messages,
+                tools=tools if tools else None,
+                tool_choice=tool_choice if tools else None,
+                stream=False,
+                **kwargs
+            )
+
+            # 从 Responses 里抽取文本 & 工具调用
+            # 尽量兼容：优先用 output_text；否则从 output 列表里聚合
+            text_out = getattr(resp, "output_text", None)
+            outputs = getattr(resp, "output", None)
+
+            if text_out is None and outputs:
+                # 聚合 message/output_text
+                parts = []
+                for item in outputs:
+                    if getattr(item, "type", "") in ("message",):
+                        # item.content 里通常还有若干块（output_text 等）
+                        content_parts = getattr(item, "content", []) or []
+                        for c in content_parts:
+                            if getattr(c, "type", "") in ("output_text",):
+                                parts.append(getattr(c, "text", ""))
+                text_out = "".join(parts) if parts else None
+
+            # 抽取工具调用（如果有）
+            tool_calls_wrapped = []
+            if outputs:
+                for item in outputs:
+                    if getattr(item, "type", "") in ("tool_call", "function_call"):
+                        name = getattr(item, "name", "")
+                        arguments = getattr(item, "arguments", "")
+                        from types import SimpleNamespace
+                        func = SimpleNamespace(name=name, arguments=arguments)
+                        tool_calls_wrapped.append(SimpleNamespace(function=func))
+
+            # 伪造 chat.completions 的返回结构
+            from types import SimpleNamespace
+            finish_reason = "tool_calls" if tool_calls_wrapped else "stop"
+            message = SimpleNamespace(
+                content=text_out or "",
+                tool_calls=tool_calls_wrapped if tool_calls_wrapped else None
+            )
+            choice = SimpleNamespace(
+                message=message,
+                finish_reason=finish_reason
+            )
+            fake_resp = SimpleNamespace(choices=[choice])
+            return fake_resp
+
+    def get_resp_legacy(
+        self,
+        prompt,
+        client_id: str = None,
+        history: list = None,
+        sys_info: str = None,
+        assis_info: str = None,
+        images: list = None,
+        image_keys: tuple = ("image_url", "url"),
+        videos: list = None,
+        video_keys: tuple = ("video_url", "url"),
+        model: str=None,
+        tools: list = None,
+        tool_choice: str = "auto",
+        stream: bool = True,
+        response_model = None,
+        **kwargs: t.Any,
+    ):
+        """
         Generates a response from a chat model based on the given prompt and additional context.
 
         Args:

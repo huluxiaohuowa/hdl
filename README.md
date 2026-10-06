@@ -29,10 +29,12 @@
 | `hdl/datasets/` | 随包数据文件（城市编码与城市向量、词表、特征定义等） |
 | `hdl/features/fp/` | 分子指纹（molecular fingerprint）特征生成器注册表 |
 | `hdl/features/graph/` | 分子图特征化：原子特征、键特征 one-hot 编码 |
+| `hdl/features/utils/` | 已算好特征的落盘/读回（`.npz`、`.npy`、`.csv`、`.pkl`、`.sdf`）与 SMILES 逐 token 切分正则 |
 | `hdl/include/`、`hdl/pytorch/`、`hdl/kernel/`、`hdl/ops/` | 自定义 CUDA 算子：核函数、C++ 绑定、Python 侧封装 |
 | `hdl/jupyfuncs/` | Jupyter 快捷函数集（`chem`、`dl`、`llm`、`path`、`show`、`network`、`dbtools`、`utils`） |
 | `hdl/layers/general/` | 通用层：线性层、高斯过程（Gaussian Process）层 |
 | `hdl/layers/graph/` | 图神经网络层：GIN、GCN、手性图卷积、四面体立体化学编码、图 Transformer |
+| `hdl/layers/sequential/` | 序列模型层子包，目前只有空的包入口文件，实现在别的目录 |
 | `hdl/metric_loss/` | 损失函数与评估指标：NT-Xent 对比学习损失、多标签损失、分类/回归指标 |
 | `hdl/models/` | 模型定义与注册表（`model_dict`、`optim_dict`） |
 | `hdl/optims/` | 自定义优化器（NAdam） |
@@ -269,6 +271,8 @@ optimizer = optim_dict['nadam'](model.parameters())
 ```
 
 训练循环与检查点逻辑见 `hdl/controllers/train/trainer_base.py`、`train_ginet.py`；推理封装见 `hdl/controllers/predictors/gin_predictor.py`。
+
+注意 `get_data_loaders()` 只把 `data_path` 传给数据集（`file_type`、`y_col_name` 等配置走默认值），因此它产出的加载器不带标签；带标签列/多 SMILES 列的加载器要用 `get_test_loader()`。
 
 ### 4. 调用大模型
 

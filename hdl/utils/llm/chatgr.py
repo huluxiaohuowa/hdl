@@ -2,6 +2,7 @@
 # 邮箱：j.hu@pku.edu.cn
 # 文件：hdl/utils/llm/chatgr.py
 # 说明：大模型调用封装
+# 模块功能：把 OpenAI_M 的流式输出（stream）接到 Gradio 网页聊天界面上，作为可直接启动的演示脚本。
 import argparse
 import gradio as gr
 from .chat import OpenAI_M
@@ -9,6 +10,9 @@ from .chat import OpenAI_M
 # 定义流式输出的生成函数
 def chat_with_llm(user_input, chat_history=[]):
     """
+    Gradio 聊天回调生成器：先把用户消息与空的 Bot 回复占位追加进历史，再逐块累加 llm.stream 的分块文本并反复 yield 刷新界面。
+    Yields: (清空输入框, 聊天历史, 聊天历史)；模块级 llm 由 __main__ 分支创建。
+
     Generates a response from the LLM based on the given user input and chat history.
     Args:
         user_input (str): The user input message.
@@ -35,6 +39,9 @@ def chat_with_llm(user_input, chat_history=[]):
 # 构建 Gradio 界面
 def create_demo():
     """
+    搭 Gradio 界面：gr.State 存聊天历史，Chatbot 显示历史，输入框的回车与发送按钮都绑到 chat_with_llm 生成器（queue=True 保证逐块刷新）。
+    Returns: gr.Blocks 界面对象，由调用方 launch 起服务。
+
     Creates a Gradio demo interface for a chatbot application.
     The interface includes:
     - A chat history display at the top of the page.
@@ -76,6 +83,7 @@ if __name__ == "__main__":
     }
 
     # 初始化连接到 LLM 服务器的接口，使用传入的 host 和 port
+    # 赋成模块级全局 llm，供 chat_with_llm 内部按名字直接引用
     llm = OpenAI_M(
         server_ip=args_dict["llm_host"],
         server_port=args_dict["llm_port"]

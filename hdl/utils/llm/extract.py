@@ -2,6 +2,7 @@
 # 邮箱：j.hu@pku.edu.cn
 # 文件：hdl/utils/llm/extract.py
 # 说明：大模型调用封装
+# 模块功能：文档文本抽取（DocExtractor），把 Word/纯文本/PDF/图片里的正文与表格读成字符串和 DataFrame，供检索增强生成（RAG）入库前的预处理。
 import pdfplumber
 import pytesseract
 from PIL import Image
@@ -12,6 +13,9 @@ from spire.doc.common import *
 
 
 class DocExtractor():
+    """文档正文抽取器：按格式提供 Word/纯文本/PDF/图片的文本与表格读取，另有 LTP 中文分句能力（给了 ltp_model_path 才加载）。
+    关键属性：ltp_model_path（分句模型目录）、lang（OCR/分句语言，默认简体中文 chi_sim）、split（分句函数，未配模型时为 None）。
+    典型用法：DocExtractor(lang="chi_sim").text_tables_from_pdf(path) 取回 (正文列表, 表格 DataFrame 列表)。"""
     def __init__(
         self,
         ltp_model_path: str = None,

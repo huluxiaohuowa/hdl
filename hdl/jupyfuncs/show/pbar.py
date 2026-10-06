@@ -27,6 +27,7 @@ NO_WHITE = HTML("""
 
 def in_jupyter():
     """Check if the code is running in a Jupyter notebook.
+    判断当前进程是否跑在 Jupyter 内核里：只看 sys.argv[0] 是否为 ipykernel_launcher.py；本模块在导入时就用它的返回值决定 tqdm/trange/tnrange 取自 notebook 版还是控制台版。
     
         Returns:
             bool: True if running in Jupyter notebook, False otherwise.
@@ -37,6 +38,7 @@ def in_jupyter():
 
 def in_docker():
     """Check if the code is running inside a Docker container.
+    判断是否运行在 Docker 容器内：容器根目录会有镜像不携带的 /.dockerenv 标记文件，据此用 osp.exists 探测（只读取该路径是否存在，不改动文件系统）。
     
         Returns:
             bool: True if running inside a Docker container, False otherwise.

@@ -15,6 +15,7 @@ from ..llm.embs import HFEmbedder
 
 def get_city_codes():
     """Get city codes from a JSON file.
+    读取随包的 datasets/city_code.json（相对本文件上溯三级目录定位，与运行时工作目录无关），返回 {城市名: 天气网城市编号} 字典（键为中文城市名，值为整数编号，只读不写）。
 
     Returns:
         dict: A dictionary containing city codes.
@@ -32,6 +33,7 @@ def get_city_codes():
 
 def get_html(code):
     """Get the HTML content of a weather webpage based on the provided code.
+    按城市编号抓取中国天气网的七天天气页：请求 http://www.weather.com.cn/weather/<code>.shtml（code 即 get_city_codes() 字典的值），带桌面 Chrome 的 User-Agent 头以躲过基本的 UA 过滤，并把响应强制按 utf-8 解码后返回页面 HTML 文本；请求本身会打印 URL，未设超时，网络失败直接抛 requests 异常。
 
     Args:
         code (str): The code used to identify the specific weather webpage.
@@ -91,6 +93,9 @@ def get_page_data(html):
 
 def get_weather(city):
     """Get the weather information for a specific city.
+    按城市名查天气并返回拼好的中文文本：先查 get_city_codes()，命中就用该城市的天气网编号抓页面；未命中时调用 get_standard_cityname（加载嵌入模型做向量近邻）取最相近的标准城市名，并在结果开头附一行「识别为…」的提示；
+    随后 get_html 抓页、get_page_data 解析成逐日预报，末尾附上「标准城市名(原名)」的标题行，返回完整字符串；
+    近邻匹配总能返回某个键（argmax 不设阈值），故拼写有误的城市会被强行认作最相近的城市；模型目录缺失或网络不通时在 HFEmbedder 或抓页处直接抛异常，本函数不做兜底。
 
     Args:
         city (str): The name of the city to get weather information for.
@@ -119,6 +124,9 @@ def get_standard_cityname(
     )
 ):
     """Get the standard city name based on the input city name.
+    用文本嵌入做城市名近邻归一：从随包的 datasets/city_embs.npy 读入预存的城市名向量矩阵，用 HFEmbedder（SentenceTransformer，权重目录取 emb_dir，由环境变量 EMB_MODEL_DIR 决定默认值，每次调用都重新加载模型并转半精度）编码输入的 city，
+    城市向量与查询向量做内积得相似度，返回 code_dic 键序上 argmax 对应的标准城市名；
+    前提是该 npy 的行序与 city_code.json 的键序严格一致，否则返回的名字与编号错位。
 
     Args:
         city (str): The input city name.

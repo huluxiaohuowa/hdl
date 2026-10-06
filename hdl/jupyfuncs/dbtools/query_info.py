@@ -13,6 +13,9 @@ from .pg import connect_by_infofile
 
 
 def query_from_cir(query_name: str):
+    """走 CIR（Chemical Identifier Resolver，cirpy 客户端）做标识符解析：对同一个 query_name 依次请求 'cas'、'names'、'smiles' 三类结果（联网访问 CIR 服务），
+    返回 None 或空结果的归一化成空列表、单个字符串结果包成单元素列表；SMILES 再交给 molvs 的 standardize_smiles 标准化成统一写法，标准化失败只打印异常、保留未标准化的原值；
+    返回三元组 (smiles, cas_list, name_list)：查不到结构式时 smiles 仍为 None，但 cas_list/name_list 可能已有内容，调用方以 smiles 是否为 None 判定命中。"""
     smiles = None
     # cas_list = []
     # name_list = [host=172.20.0.5 dbname=pistachio port=5432 user=postgres password=woshipostgres]
@@ -39,6 +42,10 @@ def query_from_cir(query_name: str):
 
 
 def query_from_pubchem(query_name: str):
+    """走 PubChem（pubchempy）按化合物名查询：pcp.get_compounds(query_name, 'name') 以 name 字段检索，返回命中化合物对象列表（需联网）；
+    有结果时取第一条的 canonical_smiles 并用 molvs 标准化，标准化抛异常则退回原始 canonical_smiles 并打印该 SMILES 与异常信息；
+    再遍历所有记录的 synonyms 汇总为别名集合，并用正则（形如 2-7 位数字-2 位数字-1 位数字）从别名文本中筛出 CAS 号；
+    返回 (smiles, cas_list, name_list)，两个列表由集合转成、顺序不保证；未命中时 smiles 为 None 且两者为空列表。"""
     results = pcp.get_compounds(query_name, 'name')
     smiles = None
     name_list = set()

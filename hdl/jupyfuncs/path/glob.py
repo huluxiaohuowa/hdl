@@ -26,6 +26,7 @@ import json
 
 def in_jupyter():
     """Check if the code is running in a Jupyter notebook.
+    判断当前进程是否跑在 Jupyter 内核里：只看 sys.argv[0] 是否为 ipykernel_launcher.py，脚本、单元测试等场景一律返回 False。
 
         Returns:
             bool: True if running in Jupyter notebook, False otherwise.
@@ -37,6 +38,7 @@ def in_jupyter():
 
 def in_docker():
     """Check if the code is running inside a Docker container.
+    判断是否运行在 Docker 容器内：容器根目录会有镜像不携带的 /.dockerenv 标记文件，据此用 osp.exists 探测（只读该路径，不改动文件系统）。
 
         Returns:
             bool: True if running inside a Docker container, False otherwise.
@@ -72,6 +74,7 @@ def get_files(
 
 def get_dataset_file(filename):
     """Get dataset file.
+    按文件名读取随包分发的 JSON 数据集：用 importlib.resources 定位资源包 jupyfuncs.datasets 下的 filename，open 后 json.load 返回解析结果（只读，不修改磁盘文件）；资源包名与当前目录布局不符时 pkg_resources.path 会直接抛错。
 
     Args:
         filename (str): The name of the dataset file.
@@ -87,6 +90,7 @@ def get_dataset_file(filename):
 
 def recursive_glob(treeroot, pattern):
     """Recursively searches for files matching a specified pattern starting from the given directory.
+    递归通配查找：os.walk 遍历 treeroot 下每一层目录，用 fnmatch 只对文件名（不含路径）做 pattern 匹配，命中项拼回所在目录加入结果；结果为列表，路径前缀跟随 treeroot 是相对还是绝对。
 
     Args:
         treeroot (str): The root directory to start the search from.
@@ -106,6 +110,7 @@ def makedirs(path: str, isfile: bool = False) -> None:
     """Creates a directory given a path to either a directory or file.
     If a directory is provided, creates that directory. If a file is provided (i.e. :code:`isfile == True`),
     creates the parent directory for that file.
+    按需创建多级目录：isfile=True 时先取 dirname 只建文件的父目录；dirname 对纯文件名会得空串，此处空串直接跳过以免 os.makedirs 报错；exist_ok=True 表示目录已存在时静默返回，无返回值。
 
 
     Args:
@@ -120,11 +125,13 @@ def makedirs(path: str, isfile: bool = False) -> None:
 
 def get_current_dir():
     """Return the current directory path."""
+    # 返回本模块 glob.py 所在目录的绝对路径（由当前帧的源文件推导），不是进程的工作目录 os.getcwd()
     return os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 
 def get_num_lines(file):
     """Get the number of lines in a file.
+    用外部 wc 命令统计文件行数：subprocess 执行 wc -l 并取输出第一个字段转 int，因此行数按换行符计数（末行无换行符则少计一行），文件不存在时 wc 的报错以 CalledProcessError 抛出。
 
     Args:
         file (str): The path to the file.
@@ -146,6 +153,10 @@ def chunkify_file(
     skiplines=-1
 ):
     """
+    把大文本文件按字节切成近似 size 字节且首尾都落在整行边界上的分块表，供多进程各读一段：
+    以二进制打开，skiplines>0 时先用 readline 跳过开头若干行（分块从跳过后的偏移开始）；
+    每块先记录 chunkStart，再 seek 前进 size 字节并 readline 把块尾推到换行之后，
+    返回 [(chunkStart, 块字节数, fname), ...]，越过 os.path.getsize 得到的文件末尾即停止（只读不改文件）。
     function to divide a large text file into chunks each having size ~= size so that the chunks are line aligned
 
     Params :
@@ -179,6 +190,10 @@ def chunkify_file(
 
 def parallel_apply_line_by_line_chunk(chunk_data):
     """
+    工作进程侧的分块处理器（供 pool.map 调用，func_apply 必须可 pickle）：
+    从 chunk_data 前 4 项解出 (起始偏移, 字节长度, 文件路径, func_apply)，其余项作为 func_apply 的附加参数；
+    以二进制打开文件、seek 到起始偏移后只读本块字节，utf-8 解码再 splitlines 得到本块行，
+    对每行调用 func_apply(line, *func_args)，收集所有非 None 返回值组成 list 返回（None 表示该行被 func_apply 丢弃）。
     function to apply a function to each line in a chunk
 
     Params :
@@ -213,6 +228,12 @@ def parallel_apply_line_by_line(
     fout=None
 ):
     """
+    逐行并行处理大文件的总调度：并行度取 min(num_procs, psutil.cpu_count()) - 1（须 >= 1，Pool 在本进程之外起 worker）；
+    先用 chunkify_file 按 chunk_size_factor MB（乘 1024*1024 换成字节）把输入文件切成行对齐的字节块，
+    再给每块拼上 func_apply 与 func_args 组成一个任务元组，因此 worker 端是整块读取、块内逐行调用，行不会跨块；
+    pool.map 按每批 num_parallel 个任务提交给 parallel_apply_line_by_line_chunk，worker 用 maxtasksperchild=1000 定期换新以防内存持续膨胀；
+    结果：fout 传入文件对象时逐条 print 写入该文件（返回值保持为空 list），否则累积进 outputs 返回；
+    每批结束后 del + gc.collect 并打印该批耗时，收尾调用 pool.close() 与 pool.terminate()，全过程另打印任务数、块序号与总行数。
     function to apply a supplied function line by line in parallel
 
     Params :
@@ -267,6 +288,10 @@ def parallel_apply_line_by_line(
 
 def get_func_from_dir(score_dir: str) -> t.Tuple[t.Callable, str]:
     """Get function and mode from directory.
+    从用户提供的打分脚本目录（或 .py 文件）动态导入入口函数：
+    score_dir 以 .py 结尾时取父目录为搜索路径、文件名去后缀为模块名，否则把该目录本身当路径、模块名固定为 main；
+    目标目录会被追加进 sys.path（进程级副作用，导入后不回收），再用 importlib 导入模块；
+    返回 (module.main, MODE)：模块里定义了 MODE 就用它，取不到时回退 'batch'（异常被吞掉）。
 
     Args:
         score_dir (str): The directory path containing the function file.
@@ -294,5 +319,7 @@ def find_images_recursive(
     directory,
     extensions=(".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff")
 ):
+    """递归收集目录下的图片文件：pathlib.rglob("*") 走完整棵树，按小写后缀名是否落在 extensions 里筛选，
+    返回 str 形式的文件路径列表（顺序由文件系统给出，未排序；目录不存在时列表为空）。"""
     path = Path(directory)
     return [str(file) for file in path.rglob("*") if file.suffix.lower() in extensions]

@@ -7,6 +7,8 @@ import redis
 
 def connect_by_infofile(info_file: str):
     """Create a postgres connection
+    把连接信息文件的首行整串作为连接参数交给 psycopg.connect（文件按 libpq 的 key=value 风格存放主机、端口、库名与账号口令，具体值不写进注释），
+    即每次调用都新建一条 PostgreSQL 连接、不会复用；返回的连接不由本函数关闭，需调用方 commit 后 close。
 
     Args:
         info_file (str):
@@ -34,6 +36,8 @@ def connect_by_infofile(info_file: str):
 def conn_redis(
     **redis_args
 ):
+    """按关键字参数新建 Redis 客户端并顺带探活：redis_args 原样透传给 redis.Redis（host、port、db、password 等连接项都在其中，取值不写进注释），
+    构造后立刻 client.ping() 并把返回布尔值打印到标准输出；返回值是已建立的 redis.Redis 实例（连接由该对象持有，函数内不关闭），参数不合法或服务不可达时在 Redis 构造/ping 阶段抛异常。"""
     import redis
     client = redis.Redis(
         **redis_args

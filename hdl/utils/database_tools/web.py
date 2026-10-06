@@ -113,6 +113,10 @@ def fetch_baidu_results(query, max_n_links=3):
 
 def wolfram_alpha_calculate(query):
     """
+    向 Wolfram Alpha 的 v2 query 接口（output=json，超时 20 秒）发一次 GET 请求做计算/事实查询：鉴权用的 App ID 从环境变量 WOLFRAM_APP_ID 读取（只读环境变量，不落盘也不打印），未配置时直接返回错误提示字符串、不发请求；
+    接口返回 success 为真时把所有 pod 下各 subpod 的 plaintext 逐行拼接、去掉首尾空白后返回（无任何 plaintext 则回 "No plaintext result available."），
+    success 为假回 "No results found for the query."，超时与其他异常都被捕获并转成相应错误字符串，因此返回值总是 str、调用方需自行辨别是否为报错文本。
+
     Sends a query to the Wolfram Alpha API and returns the result.
     Args:
         query (str): The query string to be sent to Wolfram Alpha.

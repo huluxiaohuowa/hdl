@@ -25,6 +25,9 @@ LABEL = Literal[
 
 
 def accuracies_heat(y_true, y_pred, num_tasks):
+    """画多任务预测的混淆热力图：y_true/y_pred 为逐样本的任务序号（两者长度必须相等，否则断言失败），
+    sklearn 的 confusion_matrix 以 normalize='true' 按真实任务归一化（每行之和为 1，即该任务的预测被分到各任务的比例），行列索引都取 range(num_tasks)（num_tasks 小于最大任务序号时构造 DataFrame 因尺寸不符报错）；
+    新建 10x10 英寸画布、字号 1.4、单元格按两位小数标注，只在当前 Figure 上绘制，不保存图片也不返回值。"""
     assert len(y_true) == len(y_pred)
     cm = sklearn.metrics.confusion_matrix(
         y_true, y_pred, normalize='true'
@@ -48,6 +51,11 @@ def get_metrics_curves(
     save_dir: str = None,
     figsize=(10, 6)
 ):
+    """把多个检查点（ckpt）的训练指标画成同一张折线图：日志路径为 base_dir/<ckpt>/<log_file>，不存在的打印 WARNING 后跳过该 ckpt；
+    逐行只取「切分后恰有 3 列且第 2 列等于 metric」的记录，x 为第 1 列整数（label='training_size'，训练/数据规模）或已收点数递增序号（label='episode_id'），y 为第 3 列浮点指标值，
+    而 line_id >= num_points - 1 即中断，所以 num_points 限制的是读取的日志行数而非采样点数（行数来自 wc -l，每行经 sed 子进程取出）。
+    绘图按 figsize/dpi=100 新建 Figure，每个 ckpt 一条折线、颜色取 tab20 调色板下标（ckpt 多于 20 条会越界），x 轴标签为 label、y 轴为 metric、标题为 title 并开网格，图例置于图外右上；
+    副作用是把 PNG 写入 save_dir（缺省 base_dir/metrics_curves.png）再 plt.show() 弹出显示。"""
     if not save_dir:
         save_dir = osp.join(base_dir, 'metrics_curves.png')
     data_dict = {}
@@ -106,6 +114,10 @@ def get_means_vars(
     mode: str,
     nears_each: int,
 ) -> t.List[t.List[int]]:
+    """对指标日志做滑动窗口统计，返回 (mean_s, var_s)，两个序列长度都等于 len(indices)：窗口是中心点前后各 nears_each 个位置（含中心共 2*nears_each+1 项），取每行第 3 列的浮点值。
+    mode='id' 把 indices 直接当日志的物理行号（0 基，交给 sed 逐行取），mean 为 np.mean、var_s 为 np.std（总体标准差 ddof=0）；窗口越出文件行范围时对应行取不到内容而报错。
+    mode='value' 先把整份日志读成数组，按第 1 列训练规模与各 index 的绝对差 argmin 定位最近行再开窗；var_s 额外除以 sqrt(num_points)（num_points=len(indices)，与窗口宽度无关），
+    因此它是缩放过的标准差、并不是窗口均值的标准误。"""
     
     mean_s, var_s = [], []
     num_points = len(indices)
@@ -180,6 +192,11 @@ def get_metrics_bars(
     minimum=0.0,
     maximum=1.0
 ):
+    """把多个 ckpt 的指标画成分组柱状图（每柱带误差棒）：label='training_size' 时 x 标签取 training_sizes 并按 mode='value' 统计，label='episode_id' 时取 episide_ids 走 mode='id'，num_points 即标签个数；
+    每个 ckpt 从 base_dir/<ckpt>/<log_file> 交 get_means_vars 取 (mean_s, var_s)，日志缺失打印 WARNING 跳过该 ckpt；此处 metric 只写进 y 轴文字，日志列并不按指标名筛选（柱高恒取每行第 3 列，与 get_metrics_curves 不同）。
+    分组几何：num_strategies=len(ckpts)，单柱宽 width=bar_ratio/num_strategies，x 先整体左移 (bar_ratio-width)/2 再按柱子序号右移 width*point_idx，使同一 x 位置的多个 ckpt 并排；
+    yerr 直接用 var_s（'value' 模式下已被除以 sqrt(num_points)），x_diff=True 时 x 标签统一减去 pretrained_num，y 轴范围锁在 [minimum, maximum]，图例置于图外右上；
+    副作用是新建 figsize/dpi=100 的 Figure、把 PNG 写入 save_dir（缺省 base_dir/metrics_bars.png）并 plt.show() 显示。"""
 
     if not save_dir:
         save_dir = osp.join(base_dir, 'metrics_bars.png')

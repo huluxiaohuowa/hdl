@@ -27,6 +27,7 @@ def default(val, d):
 class PreNorm(nn.Module):
     """前置归一化（pre-normalization）包装器：先对输入做 LayerNorm，再调用被包装的子模块 fn。"""
     def __init__(self, dim, fn):
+        """dim 为 LayerNorm 的归一化维（即特征维），fn 为被包装的子模块；建 self.norm=nn.LayerNorm(dim) 与 self.fn，供 forward 先归一化再调 fn。"""
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.fn = fn

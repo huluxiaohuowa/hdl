@@ -247,6 +247,7 @@ class MoleculeNet(torch.utils.data.Dataset):
             slices[key].append(s)
 
     def __repr__(self):
+        """返回 'MoleculeNet (样本数)' 形式的调试字符串，样本数由 __len__ 给出。"""
         return 'MoleculeNet ({})'.format(len(self))
     
     def copy(self, idx: Optional[IndexType] = None):
@@ -317,7 +318,8 @@ class MoleculeNet(torch.utils.data.Dataset):
         return data
 
     def __len__(self) -> int:
-        r"""The number of examples in the dataset."""
+        r"""返回样本数，即当前索引视图 self.indices() 的长度（未做 index_select 时等于全部样本数）。
+        The number of examples in the dataset."""
         return len(self.indices())
 
     # 整数索引取单个 Data（必要时套用 transform）；切片/序列索引返回数据集子集

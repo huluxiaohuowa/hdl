@@ -77,9 +77,11 @@ class CSVDataset(tud.Dataset):
             self.target_transform = None
     
     def __getitem__(self, index):
+        """基类不实现取样本：交由子类按 index 取一行，返回 SMILES 及逐列变换后的标签，调用即抛 NotImplementedError。"""
         raise NotImplementedError
     
     def __len__(self):
+        """返回表格行数（self.df 的长度），即数据集样本总数。"""
         return len(self.df)
 
 
@@ -117,7 +119,9 @@ class CSVRDataset(tud.Dataset):
             self.target_transform = label_trans_dict[target_transform]
  
     def __getitem__(self, index):
+        """基类不实现取样本：交由子类按 index 返回单条 SMILES 及其标签（缺失标签由 miss_label 判定），调用即抛 NotImplementedError。"""
         raise NotImplementedError
     
     def __len__(self):
+        """返回表格行数（self.df 的长度），即数据集样本总数。"""
         return len(self.df)

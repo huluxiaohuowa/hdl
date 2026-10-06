@@ -30,6 +30,7 @@ def memoized_property(fget):
 
     @functools.wraps(fget)
     def fget_memoized(self):
+        """property 的实际读取函数：实例上尚无 attr_name 属性时调用 fget(self) 计算一次并 setattr 写入缓存，之后直接返回 getattr 取到的缓存值。"""
         if not hasattr(self, attr_name):
             setattr(self, attr_name, fget(self))
         return getattr(self, attr_name)

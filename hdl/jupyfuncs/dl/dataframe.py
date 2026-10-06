@@ -16,7 +16,9 @@ def rm_index(df):
 
 
 def rm_col(df, col_name):
-    """Remove a column from a DataFrame.
+    """按 col_name 对列名做正则匹配（df.columns.str.match，前缀匹配），返回丢弃匹配到的列、其余列保持原顺序的新 DataFrame。
+
+    Remove a column from a DataFrame.
     
     Args:
         df (pandas.DataFrame): The input DataFrame.
@@ -29,7 +31,9 @@ def rm_col(df, col_name):
 
 
 def shuffle_df(df):
-    """Shuffle the rows of a DataFrame.
+    """用 df.sample(frac=1) 随机重排全部行，再 reset_index(drop=True) 丢弃旧索引，返回行序打乱、列不变的新 DataFrame。
+
+    Shuffle the rows of a DataFrame.
     
     Args:
         df (pandas.DataFrame): The input DataFrame to shuffle.

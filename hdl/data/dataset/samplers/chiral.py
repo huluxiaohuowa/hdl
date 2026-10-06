@@ -14,6 +14,7 @@ class StereoSampler(Sampler):
     采样时只打乱对的先后，不拆开对，使一对样本仍相邻进入同一批（batch）。"""
 
     def __init__(self, data_source):
+        """只保存 data_source（手性对相邻存放的数据集或序列），采样索引由其长度推导，不做打乱以外的额外配置。"""
         self.data_source = data_source
 
     def __iter__(self):
@@ -24,4 +25,5 @@ class StereoSampler(Sampler):
         return iter(indices)
 
     def __len__(self):
+        """返回 data_source 的长度，即一次迭代产出的索引个数（与 __iter__ 展平后的索引数一致）。"""
         return len(self.data_source)

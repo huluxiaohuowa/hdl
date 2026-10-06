@@ -16,6 +16,7 @@ import pandas as pd
 class CpClassfier:
     """共形预测分类器（conformal prediction）：用校准集各类别概率的经验分布，把测试集的预测概率映射为校准概率。"""
     def __init__(self):
+        """初始化为未拟合状态：cal_data=None（校准集 DataFrame，由 fit_with_data 按真标签整理各类别概率列后写入）、class_num=0（类别数，fit 时若不显式给定则取校准概率矩阵的列数）。"""
         self.cal_data = None
         self.class_num = 0
 

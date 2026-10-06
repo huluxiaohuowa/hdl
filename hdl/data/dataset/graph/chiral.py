@@ -28,6 +28,9 @@ class MolDataset(Dataset):
         chiral_features: bool = False,
         global_chiral_features: bool = False,
     ):
+        """只登记数据与开关，不做任何建图：smiles/labels 为等长的分子串与标签列表，
+        chiral_features/global_chiral_features 决定 MolGraph 是否加入局部/全局手性原子特征，
+        另用 numpy 求出 labels 的 mean/std 供回归归一化。"""
         super(MolDataset, self).__init__()
 
         # self.split = list(range(len(smiles)))  # fix this
@@ -75,7 +78,9 @@ class MolDataset(Dataset):
         return data
 
     def __len__(self):
+        """返回 SMILES 列表长度，即数据集样本数。"""
         return len(self.smiles)
 
     def __getitem__(self, key):
+        """按索引 key 转交给 process_key，即时构建该分子的图并返回 Data（含 x、edge_index、edge_attr、y、parity_atoms、parity_bond_index、smiles）。"""
         return self.process_key(key)

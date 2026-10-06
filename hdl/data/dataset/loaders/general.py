@@ -21,6 +21,9 @@ class Loader(tud.DataLoader):
         num_workers: int = 12,
         collate_fn: t.Callable = fp_collate
     ):
+        """无新增状态，只是给 tud.DataLoader 填默认值：dataset 为指纹数据集，batch_size 默认 128、
+        shuffle 默认 True、num_workers 默认 12，collate_fn 默认 fp_collate（按列把批内指纹堆成
+        (批大小, 指纹位数) 张量并整理标签），各参数原样传给父类。"""
         super().__init__(
             dataset,
             batch_size=batch_size,

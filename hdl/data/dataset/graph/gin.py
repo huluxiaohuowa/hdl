@@ -72,6 +72,9 @@ class MoleculeDataset(Dataset):
         smi_col_names: t.List = [],
         y_col_name: str = None, 
     ):
+        """经 read_smiles 读 data_path（file_type 取 'smi' 或 'csv'）得到 self.smiles_data：
+        单列模式为 SMILES 列表，多列模式每行为 smi_col_names 各列的 SMILES 加末列标签；
+        smi_col_names/y_col_name 存为属性，决定 __getitem__ 返回列表还是 Data。"""
         super(Dataset, self).__init__()
         self.smiles_data = read_smiles(
             data_path=data_path,
@@ -198,6 +201,7 @@ class MoleculeDataset(Dataset):
         return data_i, data_j
 
     def __len__(self):
+        """返回 self.smiles_data 的长度，即样本数。"""
         return len(self.smiles_data)
 
 
@@ -214,6 +218,9 @@ class MoleculeDatasetWrapper(object):
         smi_col_names: t.List = [], 
         y_col_name: str = None,
     ):
+        """只存配置、不建数据集：batch_size 组批大小、num_workers 加载子进程数、valid_size 验证集比例，
+        data_path/file_type/smi_col_names/y_col_name 为构建 MoleculeDataset 的读取参数，
+        后续 get_data_loaders/get_test_loader 依据这些属性建 Dataset 与 DataLoader。"""
         super(object, self).__init__()
         self.data_path = data_path
         self.batch_size = batch_size

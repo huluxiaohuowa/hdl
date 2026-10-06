@@ -41,6 +41,7 @@ def register_features_generator(features_generator_name: str) -> Callable[[Featu
     :return: A decorator which will add a features generator to the registry using the specified name.
     """
     def decorator(features_generator: FeaturesGenerator) -> FeaturesGenerator:
+        """以闭包捕获的 features_generator_name 为键，把 features_generator 写入 FEATURES_GENERATOR_REGISTRY，随后原样返回该函数（仅登记，不包装行为）。"""
         FEATURES_GENERATOR_REGISTRY[features_generator_name] = features_generator
         return features_generator
 

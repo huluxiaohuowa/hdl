@@ -285,6 +285,16 @@ resp = llm.get_resp('用一句话解释 MACCS 指纹')
 
 ---
 
+## 注释与作者头规范
+
+- 每个源码文件顶部固定四行：`# 作者：胡建星（Jianxing Hu）`、`# 邮箱：j.hu@pku.edu.cn`、`# 文件：<仓库内相对路径>`、`# 说明：<该模块职责>`。`.py`/`.sh`/`.yml`/`.toml`/`.in` 用 `#`，`.cu`/`.cpp`/`.h` 用 `//`；带 shebang 的脚本插在 shebang 之后，因此模块级 docstring 不再是第一行（注释不是语句，`__doc__` 与 `from __future__` 都不受影响）。
+- 部分包的 `__init__.py` 另带 `# 模块功能：` 行，写明子包里各实现文件的分工。
+- 函数与类的中文功能说明写在 docstring 首行，原有英文说明逐行保留在下面；张量形状、one-hot 取值表、坐标系、协议一类的实现细节用行内 `#` 注释。
+- `hdl/_version.py` 不带作者头：它由 `setuptools_scm` 在构建时覆写，手工添加会被覆盖掉。
+- 注释改动不动任何可执行语句。校验方法：把每个 `.py` 文件剥掉 docstring 后的 AST 与基线提交逐字段对比，全部一致；且每条原有英文 docstring 的原文仍完整包含在对应的新 docstring 中。
+
+---
+
 ## 版本与发布
 
 - 包版本由 `setuptools_scm` 从 git tag 推导（`pyproject.toml` 里 `tag_regex = "^(\d+\.\d+\.\d+)$"`），并写入 `hdl/_version.py`；仓库里该文件是空占位，构建时才生成。

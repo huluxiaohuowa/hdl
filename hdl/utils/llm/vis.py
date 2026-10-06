@@ -104,10 +104,8 @@ def to_base64(img):
 
 
 def imgurl_to_base64(image_url: str):
-    """下载 URL 指向的图片并编码成 data URI：先用 PIL 打开字节流嗅探真实格式，据此拼 MIME 类型，再对原始字节做 Base64。
-    非 200 响应抛异常。
-
-    Converts an image from a URL to base64 format.
+    """Converts an image from a URL to base64 format.
+    下载 URL 指向的图片并编码成 data URI：先用 PIL 打开字节流嗅探真实格式，据此拼 MIME 类型，再对原始字节做 Base64；非 200 响应抛异常。
 
     Args:
         image_url (str): The URL of the image.
@@ -141,9 +139,8 @@ def imgurl_to_base64(image_url: str):
 
 
 def imgfile_to_base64(img_dir: str):
-    """读取本地图片文件的原始字节，用 PIL 嗅探格式得到 MIME，再编码成 data URI（格式与 imgurl_to_base64 一致，只是数据来源是磁盘）。
-
-    Converts an image file to base64 format, supporting multiple formats.
+    """Converts an image file to base64 format, supporting multiple formats.
+    读取本地图片文件的原始字节，用 PIL 嗅探格式得到 MIME，再编码成 data URI（与 imgurl_to_base64 一致，只是数据来源是磁盘）。
 
     Args:
         img_dir (str): The directory path of the image file.
@@ -169,9 +166,8 @@ def imgfile_to_base64(img_dir: str):
 
 
 def imgbase64_to_pilimg(img_base64: str):
-    """把 data URI 或纯 Base64 字符串解码成 PIL 图像：split(",")[-1] 去掉 "data:image/...;base64," 头部，解码字节流经 BytesIO 交给 PIL，并统一转成 RGB。
-
-    Converts a base64 encoded image to a PIL image.
+    """Converts a base64 encoded image to a PIL image.
+    把 data URI 或纯 Base64 字符串解码成 PIL 图像：split(",")[-1] 去掉 "data:image/...;base64," 头部，解码字节流经 BytesIO 交给 PIL，并统一转成 RGB。
 
     Args:
         img_base64 (str): Base64 encoded image string.
@@ -189,9 +185,8 @@ def imgbase64_to_pilimg(img_base64: str):
 
 
 def pilimg_to_base64(pilimg):
-    """把 PIL 图像编码成 data URI：先无损另存为 PNG 写入内存缓冲区，再对缓冲区字节做 Base64 并加上 "data:image/png;base64," 头部（不论原图格式，输出统一为 PNG）。
-
-    Converts a PIL image to base64 format.
+    """Converts a PIL image to base64 format.
+    把 PIL 图像编码成 data URI：先无损另存为 PNG 写入内存缓冲区，再对缓冲区字节做 Base64 并加上 "data:image/png;base64," 头部（不论原图格式，输出统一为 PNG）。
 
     Args:
         pilimg (PIL.Image): The PIL image to be converted.

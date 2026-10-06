@@ -119,7 +119,8 @@ pip install -e .
 - `register_features_generator(name)`：装饰器，把函数登记进生成器表。
 - `get_features_generator(name)`：按名字取生成器。
 - `get_available_features_generators()`：列出所有可用生成器名。
-- 已注册的生成器名：`morgan`（二值 Morgan/ECFP，`morgan_binary_features_generator`）、`morgan_count`（计数版）、`maccs`（167 位 MACCS 键）、`rdkit_2d` 与 `rdkit_2d_normalized`（依赖 `descriptastorus`，未安装时注册的是抛 `ImportError` 的占位实现）、`e3fp`、`whales`、`selfies`、`custom`。
+- 已注册的生成器名：`morgan`（二值 Morgan/ECFP，`morgan_binary_features_generator`）、`morgan_count`（计数版）、`maccs`（167 位 MACCS 键）、`rdkit_2d` 与 `rdkit_2d_normalized`（依赖 `descriptastorus`，未安装时注册的是抛 `ImportError` 的占位实现）、`e3fp`、`whales`、`selfies`。
+  实测 `get_available_features_generators()` 返回 8 个名字：`e3fp, maccs, morgan, morgan_count, rdkit_2d, rdkit_2d_normalized, selfies, whales`；文件末尾的 `custom_features_generator` 不在这个列表里。
 - 注意：`e3fp`、`whales`、`selfies` 三个当前是**占位实现**，只写了 docstring 与文献链接，函数体 `return NotImplemented`，实际调用拿不到特征。
 
 输入既可以是 SMILES 字符串也可以是 RDKit 分子对象，返回一维 `numpy` 数组。
@@ -224,15 +225,22 @@ pip install -e .
 
 ## 快速上手
 
+> 示例 1 已在本仓库当前代码上实测跑通；示例 2-4 需要上面依赖表里的可选包（本机未装 `IPython`、`torch_geometric`、`torch_scatter` 时分别会在 `hdl.jupyfuncs.chem.mol` 与 `hdl.models.model_dict` 的 import 处报 `ModuleNotFoundError`）。
+
 ### 1. 生成分子指纹（只依赖 RDKit + numpy）
 
 ```python
 from hdl.features.fp.features_generators import get_features_generator
 
 morgan = get_features_generator('morgan')
-vec = morgan('CC(=O)Oc1ccccc1C(=O)O')   # 阿司匹林 SMILES
-print(vec.shape)
+print(morgan('CC(=O)Oc1ccccc1C(=O)O').shape)   # 阿司匹林 -> (2048,)
+
+maccs = get_features_generator('maccs')
+vec = maccs('CC(=O)Oc1ccccc1C(=O)O')
+print(vec.shape, int(vec.sum()))               # -> (167,) 21
 ```
+
+上面这段是实测跑通的（RDKit 会打印一条 `DEPRECATION WARNING: please use MorganGenerator`，来自 `GetMorganFingerprintAsBitVect` 的新旧 API 过渡，不影响结果）。
 
 ### 2. 在 Notebook 里画分子
 

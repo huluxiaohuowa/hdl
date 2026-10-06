@@ -227,6 +227,7 @@ class OpenAIWrapper(object):
         if not model:
             model = self.client_conf[client_id]["model"]
         # Adjust the image_keys to be a tuple of length 3 based on its current length
+        # image_keys / video_keys 都补齐成 (消息块类型, 外层键, 内层键)，便于适配不同服务对 media 字段的命名要求
         if isinstance(image_keys, str):
             image_keys = (image_keys,) * 3
         elif len(image_keys) == 2:
@@ -248,7 +249,9 @@ class OpenAIWrapper(object):
 
         if videos:
             if isinstance(videos, str):
+                # 注意：单个视频字符串被赋给了 images 变量，videos 仍按字符串迭代逐字符处理
                 images = [videos]
+            # 视频以 video_url/url 形式写入消息体，值可以是 URL 或 data:video/...;base64 串
             for video in videos:
                 content.append({
                     "type": video_keys[0],
@@ -261,6 +264,7 @@ class OpenAIWrapper(object):
         if images:
             if isinstance(images, str):
                 images = [images]
+            # 每张图片作为一个多模态块追加在文本块之后，顺序即模型看到的顺序
             for img in images:
                 content.append({
                     "type": image_keys[0],
@@ -269,6 +273,7 @@ class OpenAIWrapper(object):
                     }
                 })
         if (not images) and (not videos):
+            # 没有图片/视频时退回纯文本消息，避免部分服务拒绝数组形式的 content
             content = prompt
 
         # Add the user's input as a message
@@ -284,6 +289,7 @@ class OpenAIWrapper(object):
             })
 
         if tools:
+            # 函数调用（function calling）分支：tools 传工具的 JSON Schema 描述，tool_choice=auto 由模型自选是否调用
             resp = client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -307,6 +313,9 @@ class OpenAIWrapper(object):
         **kwargs
     ):
         """
+        非流式取答并按 finish_reason 分流：stop 取 message.content 当文本，tool_calls 取第一个工具的 function 对象（含 name 与 JSON 字符串 arguments）。
+        Returns: dict，键为 type（text/tool_calls）与 contents 或 tool_params；finish_reason 为其他值时返回空字典。
+
         Invoke the API to get a response based on the provided prompt.
 
         Args:
@@ -347,6 +356,10 @@ class OpenAIWrapper(object):
 
     def stream(self, prompt, **kwargs):
         """
+        流式（stream）产出字典事件：块里带 tool_calls 增量时只发出第一个工具的 function 参数并立刻结束生成器；否则逐块发出 {"type": "text", "content": 分块文本}。
+        结构异常（缺 choices/delta）时发一条 {"type": "error", "message": ...} 后结束，不抛给调用方。
+        Yields: dict，键 type 取 tool_calls/text/error，配 tool_params、content 或 message。
+
         Streams responses based on the provided prompt, yielding chunks of data.
 
         This function calls the `get_resp` method with the prompt and additional keyword arguments,
@@ -381,6 +394,7 @@ class OpenAIWrapper(object):
                 choice = chunk.choices[0]
 
                 # 如果返回了 tool_calls
+                # 函数调用（function calling）增量：只取本块的第一个 function（arguments 可能尚未随后续块补齐），随后直接结束流
                 if hasattr(choice.delta, 'tool_calls') and choice.delta.tool_calls:
                     tool_calls = choice.delta.tool_calls
                     if tool_calls:  # 防止为空
@@ -415,6 +429,9 @@ class OpenAIWrapper(object):
         **kwargs
     ):
         """
+        调用该 client_id 对应服务的文本嵌入（text embedding）接口，对 texts 批量编码。
+        Returns: list，长度等于输入文本数，每个元素是一条文本的嵌入向量（浮点列表，维度由模型决定）。
+
         Generates embeddings for a list of texts using a specified model.
 
         Args:

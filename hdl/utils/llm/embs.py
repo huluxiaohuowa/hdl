@@ -60,11 +60,10 @@ class BEEmbedder():
         self,
         sentences,
     ):
-        """把句子编码成嵌入向量：单条字符串会被包成列表，模型同时输出稠密/稀疏两路结果，这里只取稠密向量。
+        """Encode the input sentences using the model.
+        把句子编码成嵌入向量：单条字符串会被包成列表，模型同时输出稠密/稀疏两路结果，这里只取稠密向量。
         bge 分支返回 output["dense_vecs"]（numpy 数组，形状 [句子数, 向量维度]）；bce 分支直接返回 model.encode 的原始输出。
         注意 self.max_length 在 __init__ 中未赋值，显式调用会抛 AttributeError。
-
-        Encode the input sentences using the model.
         
             Args:
                 sentences (list): List of sentences to encode.
@@ -92,10 +91,9 @@ class BEEmbedder():
         sentences_1,
         sentences_2
     ):
-        """两组文本各自编码后做矩阵乘 output_1 @ output_2.T，得到形状 [len(sentences_1), len(sentences_2)] 的相似度矩阵；
+        """Calculate the similarity between two sets of sentences.
+        两组文本各自编码后做矩阵乘 output_1 @ output_2.T，得到形状 [len(sentences_1), len(sentences_2)] 的相似度矩阵；
         向量归一化时该点积即余弦相似度。
-
-        Calculate the similarity between two sets of sentences.
         
             Args:
                 sentences_1 (list): List of sentences for the first set.
@@ -121,10 +119,9 @@ class HFEmbedder():
         trust_remote_code: bool = True,
         *args, **kwargs
     ) -> None:
-        """加载 SentenceTransformer（权重来自 emb_dir），指定计算设备并按需信任模型仓库自带代码，最后 .half() 转半精度以省显存；
+        """Initialize the class with the specified parameters.
+        加载 SentenceTransformer（权重来自 emb_dir），指定计算设备并按需信任模型仓库自带代码，最后 .half() 转半精度以省显存；
         *args/**kwargs 原样传给 SentenceTransformer 构造函数。
-
-        Initialize the class with the specified parameters.
         
         Args:
             emb_dir (str): Directory path to the embeddings.
@@ -164,10 +161,9 @@ class HFEmbedder():
         sentences: list[str],
         *args, **kwargs
     ):
-        """编码句子为嵌入向量：字符串会被包成单元素列表；convert_to_tensor=True 时把 device 填成构造时的 self.device，
+        """Encode the input sentences using the model.
+        编码句子为嵌入向量：字符串会被包成单元素列表；convert_to_tensor=True 时把 device 填成构造时的 self.device，
         其余参数（batch_size、normalize_embeddings、precision 等）原样透传，返回值形状与类型由这些参数决定（默认 numpy [句子数, 维度]）。
-
-        Encode the input sentences using the model.
         
         Args:
             sentences (list[str]): List of input sentences to encode.
@@ -204,10 +200,9 @@ class HFEmbedder():
         sentences_2,
         *args, **kwargs
     ):
-        """两组文本各自编码后算 output_1 @ output_2.T，得到 [len(sentences_1), len(sentences_2)] 的相似度矩阵；
+        """Calculate the similarity between two sets of sentences.
+        两组文本各自编码后算 output_1 @ output_2.T，得到 [len(sentences_1), len(sentences_2)] 的相似度矩阵；
         *args/**kwargs 透传给 encode，需要余弦相似度时须传入 normalize_embeddings=True。
-
-        Calculate the similarity between two sets of sentences.
         
             Args:
                 sentences_1 (list): List of sentences for the first set.
@@ -228,9 +223,8 @@ def get_n_tokens(
     paragraph,
     model: str = ""
 ):
-    """统计文本 token 数：model 为空串时按中日韩（CJK）逐字近似计数，否则用 tiktoken 按指定模型词表编码后数长度。
-
-    Get the number of tokens in a paragraph using a specified model.
+    """Get the number of tokens in a paragraph using a specified model.
+    统计文本 token 数：model 为空串时按中日韩（CJK）逐字近似计数，否则用 tiktoken 按指定模型词表编码后数长度。
     
     Args:
         paragraph (str): The input paragraph to tokenize.

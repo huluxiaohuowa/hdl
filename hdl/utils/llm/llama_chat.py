@@ -17,7 +17,11 @@ class GGUF_M(Llama):
         *args,
         **kwargs
     ):
-        """Initialize the model with the specified parameters.
+        """从本地 model_path 直接加载 GGUF 权重做推理（无 HTTP 服务）：device 为 'cpu' 时只传 n_threads 与 n_ctx，
+        否则额外用 n_gpu_layers=-1 把所有层放 GPU 并开启 flash_attn；num_threads、max_context_length 必须来自 generation_kwargs，缺失即 KeyError。
+        加载完把整份 generation_kwargs 存到 self，供 invoke/stream 取重复惩罚、最大生成长度与温度。
+
+        Initialize the model with the specified parameters.
 
         Args:
             model_path (str): The path to the model.
@@ -59,7 +63,11 @@ class GGUF_M(Llama):
         # history: list = [],
         **kwargs: t.Any,
     ) -> str:
-        """Invoke the model to generate a response based on the given prompt.
+        """非流式单轮生成：先把 prompt 包成 "USER:\n{prompt}\nASSISTANT:\n" 的 llama 对话模板，再调 create_completion，
+        stop 默认在 USER:/ASSISTANT: 处截断，repetition_penalty、max_new_tokens、temperature 取自 self.generation_kwargs，
+        并固定 mirostat_mode=2 的自适应温度采样（tau=4.0、eta=1.1）、echo=False；返回 result['choices'][0]['text'] 这一条完整文本。
+
+        Invoke the model to generate a response based on the given prompt.
 
         Args:
             prompt (str): The prompt to be used for generating the response.
@@ -95,7 +103,11 @@ class GGUF_M(Llama):
         # history: list = [],
         **kwargs: t.Any,
     ):
-        """Generate text responses based on the given prompt using the model.
+        """流式生成：与 invoke 用同一个 "USER:/ASSISTANT:" 模板和同一套 self.generation_kwargs 采样参数，
+        只是 create_completion 传 stream=True 拿到本地 llama-cpp 的分块生成器，逐块 yield chunk['choices'][0]['text'] 的增量文本片段，
+        原样吐出、不做拼接，也不涉及 SSE 或网络协议。
+
+        Generate text responses based on the given prompt using the model.
 
         Args:
             prompt (str): The prompt to generate text responses.

@@ -75,7 +75,10 @@ def run_llm_stream(
     prompt,
     **kwargs
 ):
-    """
+    """把一次对话请求整包转发给 llm.stream(client_id=..., prompt=..., **kwargs)，原样返回它产出的分块流，本身不做任何计时或打印。
+    实际被 measure_stream_performance 装饰：外层 wrapper 会消费这个生成器、逐块打印 content 并输出首字延迟与字符/token 吞吐统计，
+    且不 return 生成器，所以调用方拿到的是 None 而非可迭代的响应流。
+
     Run a language model stream with the given parameters.
 
     Args:

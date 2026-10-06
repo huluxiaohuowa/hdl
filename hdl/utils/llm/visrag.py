@@ -60,6 +60,11 @@ def calculate_md5_from_binary(binary_data):
     return hash_md5.hexdigest()
 
 def add_pdf_gradio(pdf_file_binary, progress=gr.Progress(), cache_dir=None, model=None, tokenizer=None):
+    """Gradio「上传 PDF」按钮的后端：把整份 PDF 按页做视觉 embedding 入库。
+    以 PDF 二进制的 MD5 作为 knowledge_base_name，在 cache_dir/<知识库ID>/ 下写入 src.pdf；
+    用 fitz 以 dpi=200 把每一页渲染成 RGB 图，逐页在 torch.no_grad 下调视觉 embedding 模型
+    model(text=[''], image=[页图], tokenizer=...) 取 reps 存成 reps.npy，页图按图像 MD5 存为 <md5>.png，MD5 顺序列表存 md5s.txt。
+    返回知识库 ID；进度经 progress.tqdm 回显到 Gradio 界面。"""
     model.eval()
 
     knowledge_base_name = calculate_md5_from_binary(pdf_file_binary)
@@ -102,6 +107,10 @@ def add_pdf_gradio(pdf_file_binary, progress=gr.Progress(), cache_dir=None, mode
     return knowledge_base_name
 
 def retrieve_gradio(knowledge_base, query, topk, cache_dir=None, model=None, tokenizer=None):
+    """按 query 从已入库的知识库里检索 topk 个 PDF 页面图（视觉 RAG 的召回端）。
+    读取 cache_dir/<knowledge_base>/md5s.txt 与 reps.npy，把加了检索指令前缀的 query 用 embedding 模型编码，
+    与各页面向量做点积（matmul，向量需归一化才等价于余弦相似度）后 torch.topk 取前 topk 页，打开对应 <md5>.png 返回 PIL 图像列表；
+    同时把知识库、query 与命中页路径写进 q-<query 的 MD5>.json 供 upvote/downvote 记录偏好。知识库目录不存在时返回 None。"""
     model.eval()
 
     target_cache_dir = os.path.join(cache_dir, knowledge_base)
@@ -149,6 +158,9 @@ def retrieve_gradio(knowledge_base, query, topk, cache_dir=None, model=None, tok
 #     return image_base64
 
 def answer_question(images, question, gen_model):
+    """用生成端多模态大模型（VLM）基于检索到的页图作答：images 是 Gallery 的返回值，逐项取 image[0] 作为页图路径打开成 RGB，
+    按最大宽度、高度累加垂直拼接成一张长图，转成 PNG 的 Base64 data URI 后调 gen_model.chat(prompt=question, images=[长图], stream=False)，
+    返回一次性（非流式）的完整回答字符串；页图越多拼接图越长，单次请求的图片体积随之增大。"""
     # Load images from the image paths in images[0]
     pil_images = [Image.open(image[0]).convert('RGB') for image in images]
 
@@ -183,6 +195,8 @@ def answer_question(images, question, gen_model):
     return answer
 
 def upvote(knowledge_base, query, cache_dir):
+    """记录点赞反馈：按 query 的 MD5 找到 cache_dir/<knowledge_base>/q-<md5>.json（retrieve_gradio 写入的检索记录），
+    加上 user_preference="upvote" 后另存为 q-<md5>-withpref.json；原文件不改写，无返回值。"""
     target_cache_dir = os.path.join(cache_dir, knowledge_base)
     query_md5 = hashlib.md5(query.encode()).hexdigest()
 
@@ -195,6 +209,8 @@ def upvote(knowledge_base, query, cache_dir):
         f.write(json.dumps(data, indent=4, ensure_ascii=False))
 
 def downvote(knowledge_base, query, cache_dir):
+    """记录点踩反馈：与 upvote 同一套流程，读取 q-<md5>.json 后把 user_preference 置为 "downvote"，
+    写到同目录的 q-<md5>-withpref.json，用作检索/生成两阶段的偏好标注；无返回值。"""
     target_cache_dir = os.path.join(cache_dir, knowledge_base)
     query_md5 = hashlib.md5(query.encode()).hexdigest()
 

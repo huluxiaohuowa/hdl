@@ -14,7 +14,11 @@ def chat_oai_stream(
     *args,
     **kwargs
 ):
-    """Chat with OpenAI's GPT-3 model using the specified parameters.
+    """按 OpenAI 协议向 base_url（默认本地 http://127.0.0.1:8000/v1，自建 vLLM 之类网关用 api_key="dummy_key" 占位）
+    发一条 user 消息，chat.completions.create 以 stream=True 走流式；逐个 chunk yield choices[0].delta.content 的增量文本，
+    未过滤空增量，因此角色块与结束块会 yield 出 None；model 直接填服务端加载的模型路径名（默认 Qwen-7B-Chat-Int4）。
+
+    Chat with OpenAI's GPT-3 model using the specified parameters.
 
     Args:
         base_url (str): The base URL for the OpenAI API. Default is "http://127.0.0.1:8000/v1".
@@ -52,7 +56,11 @@ def chat_oai_invoke(
     model="/data/models/Qwen-7B-Chat-Int4",
     prompt="Who are you?",
 ):
-    """Invoke OpenAI chat API to generate a response based on the given prompt.
+    """同样连 base_url/api_key 的 OpenAI 协议网关，但 chat.completions.create 用 stream=False 发一次性请求，
+    直接返回 response.choices[0].message.content 的完整回答字符串，模型名默认 Qwen-7B-Chat-Int4；
+    请求体里引用了 *args、**kwargs，而本函数签名并未声明它们，因此当前调用会因名字未定义而失败。
+
+    Invoke OpenAI chat API to generate a response based on the given prompt.
 
     Args:
         base_url (str): The base URL of the OpenAI API. Default is "http://127.0.0.1:8000/v1".

@@ -21,7 +21,11 @@ class DocExtractor():
         ltp_model_path: str = None,
         lang: str = "chi_sim"
     ) -> None:
-        """Initialize the object with the specified LTP model path and language.
+        """只记录 ltp_model_path 与语言 lang（默认简体中文 chi_sim），self.split 先置 None；
+        仅当传入 ltp_model_path 时才延迟导入 ltp、加载分句模型并把 self.split 设为 StnSplit().split（按标点切句，可直接 self.split(text) 调用）。
+        LTP 实例只存在局部变量 ltp 上、未挂到 self，因此模型不会从实例访问；serverless 场景下不传模型目录即完全不依赖 ltp。
+
+        Initialize the object with the specified LTP model path and language.
         
         Args:
             ltp_model_path (str): The file path to the LTP model. Default is None.
@@ -45,6 +49,8 @@ class DocExtractor():
     def text_from_doc(
         doc_path
     ):
+        """用 spire.doc 的 Document 从 doc_path 加载 Word（.doc/.docx）文档，GetText() 返回整篇正文纯文本，
+        表格与图片不保留，也不写任何文件。注意声明为 classmethod 后首个形参会绑定成类本身，调用时需要显式补上文档路径。"""
         document = Document()
         # Load a Word document
         document.LoadFromFile(doc_path)
@@ -55,7 +61,9 @@ class DocExtractor():
     def text_from_plain(
         txt_path
     ):
-        """Reads and returns the text content from a plain text file.
+        """以 open 默认编码读 txt_path 指向的纯文本文件，整篇一次性 read 成正文字符串返回，不做换行清洗或分句。
+
+        Reads and returns the text content from a plain text file.
         
             Args:
                 txt_path (str): The path to the plain text file.
@@ -71,7 +79,11 @@ class DocExtractor():
     def extract_text_from_image(
         image: Image.Image,
     ) -> str:
-        """Extracts text from the given image using pytesseract.
+        """用 pytesseract 对 PIL 图像做 OCR 并返回识别出的文本字符串，识别语言取实例的 self.lang（默认 chi_sim 简体中文）。
+        当前声明为 @staticmethod 却在函数体内引用 self.lang，且签名里没有 lang 形参，与 text_tables_from_pdf 里
+        self.extract_text_from_image(pil_image, lang=self.lang) 的调用方式并不匹配。
+
+        Extracts text from the given image using pytesseract.
         
         Args:
             image (PIL.Image.Image): The input image from which text needs to be extracted.
@@ -85,7 +97,11 @@ class DocExtractor():
     def is_within_bbox(
         bbox1, bbox2
     ):
-        """Check if bbox1 is within bbox2.
+        """按 pdfplumber 的页面坐标约定判断 bbox1 是否完全落在 bbox2 内：只逐个比较四条边界
+        [x_min, y_min, x_max, y_max]（即 x0/top/x1/bottom），全部满足才 True，不涉及面积或中心点；
+        text_tables_from_pdf 用它把落在表格框内的字符从正文里剔除。
+
+        Check if bbox1 is within bbox2.
         
         Args:
             bbox1 (list): List of 4 integers representing the bounding box coordinates [x_min, y_min, x_max, y_max].
@@ -101,7 +117,11 @@ class DocExtractor():
         pdf_path,
         table_from_pic: bool = False
     ):
-        """Extract text and tables from a PDF file.
+        """用 pdfplumber 逐页读 pdf_path，返回 (正文列表, 表格 DataFrame 列表)：表格由 find_tables 得到，首行作表头转 DataFrame 并加 Page 列（页码从 1 起）；
+        正文按 page.chars 逐字符取 (x0, top, x1, bottom) 作为 bbox，用 is_within_bbox 剔除落在表格框内的字符后拼接成一页文本（extract_text 只按 0.1 容差取整页文本，不进入返回值）。
+        table_from_pic=True 时再把页内每张图的 bbox 用 within_bbox 裁出、转 PNG 走 OCR 补成表格（越界图跳过，单图异常只打印）；全篇无表格时第二项返回 [空 DataFrame]。
+
+        Extract text and tables from a PDF file.
         
         Args:
             pdf_path (str): Path to the PDF file.

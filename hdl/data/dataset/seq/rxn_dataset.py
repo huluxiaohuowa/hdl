@@ -49,6 +49,11 @@ class RXNCSVDataset(CSVDataset):
         )
  
     def __getitem__(self, index):
+        """取第 index 行的反应 SMILES，convert_reaction_to_valid_features 逐条词元化得到
+        input_ids、input_mask、segment_ids，各转成 int64 张量并按此顺序放进列表 X；
+        input_mask 标记有效词元位置，padding（填充）位为 0 由模型侧忽略。
+        target_cols 非空时把该行这些列的取值按列序转成 LongTensor 作类别索引 y，返回 (X, y)；
+        无标签列时只返回 X。"""
         # rxn_list = [self.df.loc[index][self.smiles_col]]
         rxn = self.df.loc[index][self.smiles_col]
         feats = convert_reaction_to_valid_features(

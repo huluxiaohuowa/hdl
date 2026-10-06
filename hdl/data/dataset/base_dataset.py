@@ -84,6 +84,11 @@ class CSVDataset(tud.Dataset):
 
 
 class CSVRDataset(tud.Dataset):
+    """单 SMILES 列、单标签列的 CSV 数据集基类，继承 torch.utils.data.Dataset。
+    target_col 为标签列名（None 表示无标签），missing_label 为缺失值占位符，
+    target_transform 只接受单个名称并在 label_trans_dict 中查表。
+    __getitem__ 由子类实现，__len__ 返回表行数。
+    """
     def __init__(
         self,
         csv_file: str,
@@ -94,7 +99,9 @@ class CSVRDataset(tud.Dataset):
         target_transform: t.Union[str, t.List[str]] = None,
         **kwargs
     ) -> None:
+        # 记录原始 CSV 路径（未做绝对化处理）
         self.csv_file = csv_file 
+        # 按分隔符读入 CSV 并去掉 Unnamed 冗余索引列
         df = pd.read_csv(
             self.csv_file,
             sep=splitter,
@@ -103,8 +110,10 @@ class CSVRDataset(tud.Dataset):
         self.df = rm_index(df)
         self.smiles_col = smiles_col 
         self.target_col = target_col
+        # 缺失值占位符字符串存于 miss_label，供子类判定并处理缺失标签
         self.miss_label = missing_label
         if target_transform is not None:
+            # 单标签列数据集仅配置一个变换函数
             self.target_transform = label_trans_dict[target_transform]
  
     def __getitem__(self, index):

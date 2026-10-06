@@ -790,6 +790,7 @@ class SubgraphX(object):
                             figname=vis_name)
 
     def read_from_MCTSInfo_list(self, MCTSInfo_list):
+        """把存盘的节点字典列表还原成 MCTSNode 对象：支持单层（单个标签）与两层（按标签分组）两种结构"""
         if isinstance(MCTSInfo_list[0], dict):
             ret_list = [MCTSNode(device=self.device).load_info(node_info) for node_info in MCTSInfo_list]
         elif isinstance(MCTSInfo_list[0][0], dict):
@@ -800,6 +801,7 @@ class SubgraphX(object):
         return ret_list
 
     def write_from_MCTSNode_list(self, MCTSNode_list):
+        """把 MCTSNode 列表转成可 torch.save 的字典列表（调用 node.info），结构与 read_from_MCTSInfo_list 对应"""
         if isinstance(MCTSNode_list[0], MCTSNode):
             ret_list = [node.info for node in MCTSNode_list]
         elif isinstance(MCTSNode_list[0][0], MCTSNode):
@@ -813,19 +815,27 @@ class SubgraphX(object):
                 max_nodes: int = 5,
                 node_idx: Optional[int] = None,
                 saved_MCTSInfo_list: Optional[List[List]] = None):
+        """对单个目标类别 label 做一次子图搜索归因：
+        x 为节点特征、edge_index 为边；saved_MCTSInfo_list 非空时直接复用已存盘的搜索节点而不重跑 MCTS。
+        返回 (results 各候选子图节点的字典列表, related_pred 字典)；
+        related_pred 含 masked（保留关键子图时的目标类得分）、maskout（去掉关键子图后的得分）、
+        origin（原图该节点/整图的目标类概率）、sparsity（解释子图的稀疏度）"""
 
+        # 先取原图（或原节点）的类别概率，作为 origin 参照值（此处前向未包 torch.no_grad）
         probs = self.model(x, edge_index).squeeze().softmax(dim=-1)
         if self.explain_graph:
             if saved_MCTSInfo_list:
                 results = self.read_from_MCTSInfo_list(saved_MCTSInfo_list)
 
             if not saved_MCTSInfo_list:
+                # 图分类：以目标类概率为特征函数（value function），用夏普利值（Shapley value）奖励驱动 MCTS
                 value_func = GnnNetsGC2valueFunc(self.model, target_class=label)
                 payoff_func = self.get_reward_func(value_func)
                 self.mcts_state_map = self.get_mcts_class(x, edge_index, score_func=payoff_func)
                 results = self.mcts_state_map.mcts(verbose=self.verbose)
 
             # l sharply score
+            # 重新构造特征函数，供后面 masked/maskout 两种掩码打分使用
             value_func = GnnNetsGC2valueFunc(self.model, target_class=label)
             tree_node_x = find_closest_node_result(results, max_nodes=max_nodes)
 
@@ -836,6 +846,7 @@ class SubgraphX(object):
             self.mcts_state_map = self.get_mcts_class(x, edge_index, node_idx=node_idx)
             self.new_node_idx = self.mcts_state_map.new_node_idx
             # mcts will extract the subgraph and relabel the nodes
+            # 节点分类：MCTS 已把邻域子图重编号，故用新编号的 new_node_idx 取节点概率
             value_func = GnnNetsNC2valueFunc(self.model,
                                              node_idx=self.mcts_state_map.new_node_idx,
                                              target_class=label)
@@ -849,16 +860,19 @@ class SubgraphX(object):
             tree_node_x = find_closest_node_result(results, max_nodes=max_nodes)
 
         # keep the important structure
+        # 掩码方案一：只保留选中子图的节点
         masked_node_list = [node for node in range(tree_node_x.data.x.shape[0])
                             if node in tree_node_x.coalition]
 
         # remove the important structure, for node_classification,
         # remain the node_idx when remove the important structure
+        # 掩码方案二：保留子图以外的节点，节点分类时把目标节点本身也留下
         maskout_node_list = [node for node in range(tree_node_x.data.x.shape[0])
                              if node not in tree_node_x.coalition]
         if not self.explain_graph:
             maskout_node_list += [self.new_node_idx]
 
+        # 两种掩码子图各自前向打分，差值越大说明该子图越关键
         masked_score = gnn_score(masked_node_list,
                                  tree_node_x.data,
                                  value_func=value_func,
@@ -869,10 +883,12 @@ class SubgraphX(object):
                                   value_func=value_func,
                                   subgraph_building_method=self.subgraph_building_method)
 
+        # 解释子图的稀疏度（sparsity）：越接近 1 表示用越少的节点/边就复现了预测
         sparsity_score = sparsity(masked_node_list, tree_node_x.data,
                                   subgraph_building_method=self.subgraph_building_method)
 
         results = self.write_from_MCTSNode_list(results)
+        # 汇总四项指标：保留子图 / 移除子图 / 原图 / 稀疏度
         related_pred = {'masked': masked_score,
                         'maskout': maskout_score,
                         'origin': probs[node_idx, label].item(),
@@ -882,6 +898,7 @@ class SubgraphX(object):
 
     def __call__(self, x: Tensor, edge_index: Tensor, **kwargs)\
             -> Tuple[None, List, List[Dict]]:
+        # 对每个类别各调一次 explain；若 save_dir 下已有 <filename>.pt 则载入作为 saved_MCTSInfo_list 复用搜索结果，结束时把结果写回该文件
         r""" explain the GNN behavior for the graph using SubgraphX method
         Args:
             x (:obj:`torch.Tensor`): Node feature matrix with shape
@@ -898,6 +915,7 @@ class SubgraphX(object):
         max_nodes = kwargs.get('max_nodes')   # default max subgraph size
 
         # collect all the class index
+        # 每个类别单独包一层张量作为 label 传入 explain
         labels = tuple(label for label in range(self.num_classes))
         ex_labels = tuple(torch.tensor([label]).to(self.device) for label in labels)
 

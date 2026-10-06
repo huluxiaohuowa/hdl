@@ -258,6 +258,7 @@ def draw_and_plot_boxes_from_json(
     #     print(f"Image file not found at {image_path}. Please check the path.")
     #     return None
     if not isinstance(image, Image.Image):
+        # 允许传 PIL 图像或来源字符串，字符串统一走 to_img（Base64/URL/路径三选一）
         image = to_img(image)
     img = image
 
@@ -265,6 +266,7 @@ def draw_and_plot_boxes_from_json(
     width, height = img.size
 
     # Use a commonly available font
+    # 优先用 Linux 上常见的 DejaVu 粗体（25 磅），找不到则退回 PIL 默认点阵字体
     try:
         font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size=25)
     except IOError:

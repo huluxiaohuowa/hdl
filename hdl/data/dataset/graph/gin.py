@@ -2,6 +2,7 @@
 # 邮箱：j.hu@pku.edu.cn
 # 文件：hdl/data/dataset/graph/gin.py
 # 说明：分子数据集构建与切分
+# 模块功能：面向图对比学习的分子图（molecular graph）数据集：SMILES 转图并随机掩蔽原子/键生成两个增强视图，附训练/验证/测试 DataLoader 封装。
 # import os
 import csv
 import math
@@ -37,6 +38,7 @@ __all__ = [
 ]
 
 
+# 原子序数/手性标记/键类型/键方向的取值表，特征以类别在该表中的下标表示
 ATOM_LIST = list(range(1, 119))
 CHIRALITY_LIST = [
     Chem.rdchem.ChiralType.CHI_UNSPECIFIED,
@@ -58,6 +60,11 @@ BONDDIR_LIST = [
 
 
 class MoleculeDataset(Dataset):
+    """torch_geometric Dataset 子类：经 read_smiles 读入 SMILES，访问时即时转图。
+    data_path 为数据文件路径，file_type 取 'smi' 或 'csv'，smi_col_names 为多个 SMILES 列名，
+    y_col_name 为标签列名。__getitem__ 对单个分子返回一对掩蔽视图 (data_i, data_j)；
+    多 SMILES 列模式返回列表，配置 y 列时末元素为 float 标签。
+    """
     def __init__(
         self,
         data_path,
@@ -80,10 +87,12 @@ class MoleculeDataset(Dataset):
         idx: int
     ):
         if any(self.smi_col_names):
+            # 前 len(smi_col_names) 列逐列转图
             item = [
                 self.getitem(smiles)
                 for smiles in self.smiles_data[idx][: len(self.smi_col_names)]
             ]
+            # 配置了标签列则把行末列转为 float 追加到结果末尾
             if self.y_col_name is not None:
                 item.append(float(self.smiles_data[idx][-1]))
             return item
@@ -91,6 +100,8 @@ class MoleculeDataset(Dataset):
             return self.getitem(self.smiles_data[idx])
 
     def getitem(self, smiles):
+        """单个 SMILES 转分子图：拼原子特征 (N, 2)、双向边索引 (2, 2M)、边特征 (2M, 2)，
+        再各随机掩蔽约 25% 的原子与键，返回增强视图对 (data_i, data_j)。"""
         mol = Chem.MolFromSmiles(smiles)
         # mol = Chem.AddHs(mol)
 
@@ -103,6 +114,7 @@ class MoleculeDataset(Dataset):
         # aromatic = []
         # sp, sp2, sp3, sp3d = [], [], [], []
         # num_hs = []
+        # 逐原子记录原子序数与手性标记的类别下标
         for atom in mol.GetAtoms():
             type_idx.append(ATOM_LIST.index(atom.GetAtomicNum()))
             chirality_idx.append(CHIRALITY_LIST.index(atom.GetChiralTag()))
@@ -117,12 +129,14 @@ class MoleculeDataset(Dataset):
         # z = torch.tensor(atomic_number, dtype=torch.long)
         x1 = torch.tensor(type_idx, dtype=torch.long).view(-1,1)
         x2 = torch.tensor(chirality_idx, dtype=torch.long).view(-1,1)
+        # 两列类别下标按特征维拼接为 (原子数, 2) 的原子特征矩阵
         x = torch.cat([x1, x2], dim=-1)
         # x2 = torch.tensor([atomic_number, aromatic, sp, sp2, sp3, sp3d, num_hs],
         #                     dtype=torch.float).t().contiguous()
         # x = torch.cat([x1.to(torch.float), x2], dim=-1)
 
         row, col, edge_feat = [], [], []
+        # 每条化学键拆成正反向两条有向边，各记一次 [键类型, 键方向] 特征
         for bond in mol.GetBonds():
             start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
             row += [start, end]
@@ -137,10 +151,12 @@ class MoleculeDataset(Dataset):
                 BONDDIR_LIST.index(bond.GetBondDir())
             ])
 
+        # 汇总为 (2, 2M) 边索引与 (2M, 2) 边特征
         edge_index = torch.tensor([row, col], dtype=torch.long)
         edge_attr = torch.tensor(np.array(edge_feat), dtype=torch.long)
 
         # random mask a subgraph of the molecule
+        # 数据增强：按约 25% 比例随机选取要掩蔽的原子与键，构造两个视图
         num_mask_nodes = max([1, math.floor(0.25*N)])
         num_mask_edges = max([0, math.floor(0.25*M)])
         mask_nodes_i = random.sample(list(range(N)), num_mask_nodes)
@@ -152,8 +168,10 @@ class MoleculeDataset(Dataset):
         mask_edges_j = [2*i for i in mask_edges_j_single] + [2*i+1 for i in mask_edges_j_single]
 
         x_i = deepcopy(x)
+        # 被掩蔽原子的特征置为预留的未知原子类别 len(ATOM_LIST)
         for atom_idx in mask_nodes_i:
             x_i[atom_idx,:] = torch.tensor([len(ATOM_LIST), 0])
+        # 剔除被掩蔽的有向边并压缩边列表（视图 j 同理）
         edge_index_i = torch.zeros((2, 2*(M-num_mask_edges)), dtype=torch.long)
         edge_attr_i = torch.zeros((2*(M-num_mask_edges), 2), dtype=torch.long)
         count = 0

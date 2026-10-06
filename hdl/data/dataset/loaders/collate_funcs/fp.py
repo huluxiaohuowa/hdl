@@ -34,7 +34,7 @@ def fp_collate(batch):
     样本来自 FPDataset，形如 (指纹列表,) / (指纹列表, 原始标签) / (指纹列表, 变换后标签, 原始标签)。
     zip(*batch) 先得到每个位置的批内元组，对第 0 位再 zip 一次即按 SMILES 列对齐，
     torch.vstack 把同列的 batch_size 个一维指纹堆成 (批大小, 指纹位数) 的 float 张量。
-    原始标签按任务列转置：取值为首元素不可迭代的标量时转成 1D float 张量，否则原样留作 list。
+    原始标签按任务列转置：每列首元素不可迭代（标量标签）时转成 1D float 张量，否则保留为 list。
     返回随样本段数变化：3 段返回 (fps, target_tensors, targets_list)，其中 target_tensors 由第 1 位
     各任务的变换后标签（one-hot 等）vstack 成张量；2 段返回 (fps, targets, targets_list)；
     1 段（无标签）只返回 fps。

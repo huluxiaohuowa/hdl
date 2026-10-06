@@ -61,9 +61,12 @@ for epoch in range(2000):
     if epoch % 100 == 0:
       print(f"Epoch {epoch} | Train Loss {loss}")
 # Visualize learning (training loss)
+# 逐条把损失张量搬到 CPU 并脱离计算图转成 float，再和轮次序号一起交给 seaborn 画折线；此处 plt 被重新绑定为 lineplot 返回的坐标轴对象
 import seaborn as sns
 losses_float = [float(loss.cpu().detach().numpy()) for loss in losses] 
 loss_indices = [i for i,l in enumerate(losses_float)] 
+# 这一行裸写的 plt 只是把 Axes 对象显示出来（交互环境下生效），未调用 show/savefig
 plt = sns.lineplot(loss_indices, losses_float)
 plt
+# 下一行是原稿粘贴进来的未加引号英文说明文字，HEAD 版本就存在该语法错误，此处按任务约定原样保留、不做修复
 As result we get something like this:

@@ -441,7 +441,22 @@ def mol_without_indices(
     remove_indices=[], 
     keep_properties=[] 
 ): 
+    """按原子索引删原子并重建分子（保留 R 基团标记等原子属性）。
+
+    Args:
+        mol_input: 源 Chem.Mol（常为带原子映射号的母核/R 基团表达分子）。
+        remove_indices: 要删除的原子索引列表，索引按源分子计。
+        keep_properties: 需要从源原子拷贝到新原子上的属性名列表。
+
+    Returns:
+        Chem.Mol：重建后的新分子。两端都保留的键按重排后的新索引重建；
+        只有一端保留的键被丢弃，若保留端是氮则把显式氢数加 1 以补偿失去的那根键；
+        '*' 与 'R<n>' 占位原子统一写成 dummy 原子 '*'，并用 molAtomMapNumber /
+        dummyLabel / _MolFileRLabel 属性记住原来的 R 标号。
+    """
      
+    # 先把原子信息（符号、电荷、显式氢、要保留的属性）和键信息摘成普通元组列表，
+    # 后续在干净的新分子上重放，避免在源分子上就地删原子打乱索引
     atom_list, bond_list, idx_map = [], [], {}  # idx_map: {old: new} 
     for atom in mol_input.GetAtoms(): 
          
@@ -451,9 +466,12 @@ def mol_without_indices(
                 props[property_name] = atom.GetPropsAsDict()[property_name] 
         symbol = atom.GetSymbol() 
          
+        # 占位原子 '*'：把原子映射号（atom map number）记进属性，重建后仍能对应回原 R 位点
         if symbol.startswith('*'): 
             atom_symbol = '*' 
             props['molAtomMapNumber'] = atom.GetAtomMapNum() 
+        # 'R1'/'R2' 这类 R 基团记号：符号统一成 dummy 原子 '*'，
+        # 标号取自符号尾缀（无尾缀时用原子映射号），写成 dummyLabel / _MolFileRLabel / molAtomMapNumber
         elif symbol.startswith('R'): 
             atom_symbol = '*' 
             if len(symbol) > 1: 
@@ -474,6 +492,7 @@ def mol_without_indices(
                 props 
             ) 
         ) 
+    # 键只登记起止原子索引与键型（bond type），删原子后再判断能否保留
     for bond in mol_input.GetBonds(): 
         bond_list.append( 
             ( 
@@ -482,10 +501,13 @@ def mol_without_indices(
                 bond.GetBondType() 
             ) 
         ) 
+    # 建一个空的可写分子（RWMol），把保留下来的原子和键逐个重放上去
+    # 空的可写分子（RWMol）：保留下来的原子按顺序重放，索引随之重排
     mol = Chem.RWMol(Chem.Mol()) 
      
     new_idx = 0 
     for atom_index, atom_info in enumerate(atom_list): 
+        # 命中 remove_indices 的原子整条跳过，其余原子重建并登记旧→新索引
         if atom_index not in remove_indices: 
             atom = Chem.Atom(atom_info[0]) 
             atom.SetFormalCharge(atom_info[1]) 

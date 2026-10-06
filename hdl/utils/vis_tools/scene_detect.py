@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/utils/vis_tools/scene_detect.py
+# 说明：图像与场景识别可视化工具
 import os
 import json
 import base64

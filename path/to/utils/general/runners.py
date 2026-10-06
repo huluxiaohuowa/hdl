@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：path/to/utils/general/runners.py
+# 说明：疑似误提交的 hdl/utils/general/runners.py 副本，不在包内
 def run_cmd(command: str):
     """
     Executes a command in a subprocess and returns the execution result.

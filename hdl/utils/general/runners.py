@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/utils/general/runners.py
+# 说明：通用运行与路径工具
 import subprocess
 import sys
 import os

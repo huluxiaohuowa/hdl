@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/jupyfuncs/llm/extract.py
+# 说明：大模型接口工具
 import pdfplumber
 import pytesseract
 from PIL import Image

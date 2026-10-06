@@ -1,3 +1,8 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/metric_loss/metric.py
+# 说明：损失函数与评估指标
+# 模块功能：评估指标（classification/regression metrics）实现与按名称取指标函数的工厂 get_metric。
 import math
 from typing import Callable, List, Union
 from functools import partial
@@ -16,6 +21,7 @@ import scipy
 
 def prc_auc(targets: List[int], preds: List[float]) -> float:
     """
+    精确率-召回率曲线下面积（PRC-AUC），输入为二值标签与正类概率。
     Computes the area under the precision-recall curve.
 
     :param targets: A list of binary targets.
@@ -28,6 +34,7 @@ def prc_auc(targets: List[int], preds: List[float]) -> float:
 
 def bce(targets: List[int], preds: List[float]) -> float:
     """
+    二分类交叉熵（binary cross entropy）：假定 preds 已经过 sigmoid，直接对概率求 BCE 并取均值。
     Computes the binary cross entropy loss.
 
     :param targets: A list of binary targets.
@@ -43,6 +50,7 @@ def bce(targets: List[int], preds: List[float]) -> float:
 
 def rmse(targets: List[float], preds: List[float]) -> float:
     """
+    均方根误差（RMSE）。
     Computes the root mean squared error.
 
     :param targets: A list of targets.
@@ -54,6 +62,7 @@ def rmse(targets: List[float], preds: List[float]) -> float:
 
 def mse(targets: List[float], preds: List[float]) -> float:
     """
+    均方误差（MSE）。
     Computes the mean squared error.
 
     :param targets: A list of targets.
@@ -65,6 +74,7 @@ def mse(targets: List[float], preds: List[float]) -> float:
 
 def accuracy(targets: List[int], preds: Union[List[float], List[List[float]]], threshold: float = 0.5) -> float:
     """
+    准确率：preds 的每个元素是列表时按最大概率取类别（多分类），否则按 threshold 二值化（二分类）。
     Computes the accuracy of a binary prediction task using a given threshold for generating hard predictions.
 
     Alternatively, computes accuracy for a multiclass prediction task by picking the largest probability.
@@ -84,12 +94,14 @@ def accuracy(targets: List[int], preds: Union[List[float], List[List[float]]], t
 
 def rsquared(x, y):
     """ Return R^2 where x and y are array-like."""
+    # 决定系数（R²）：对 x、y 做一元线性回归后取相关系数的平方
 
     _, _, r_value, _, _ = scipy.stats.linregress(x, y)
     return r_value ** 2
 
 
 def mcc(y_true, y_pred):
+    """马修斯相关系数（Matthews correlation coefficient, MCC）：y_true 直接转 int，y_pred 按 >=0.5 二值化后计算。"""
     y_true = np.array(y_true).astype(int)
     # y_true = np.where(y_true == 1, 1, -1).astype(int)
     y_pred = np.array(y_pred)
@@ -99,6 +111,7 @@ def mcc(y_true, y_pred):
 
 
 def topk(y_true, y_pred, k=1):
+    """Top-k 命中率：每行按预测概率降序取前 k 个类别索引，统计真实标签命中数占总样本数的比例。"""
 
     y_true = np.array(y_true).astype(int)
 
@@ -113,6 +126,9 @@ def topk(y_true, y_pred, k=1):
 
 def get_metric(metric: str) -> Callable[[Union[List[int], List[float]], List[float]], float]:
     r"""
+    按名称返回评估指标函数（工厂）。键为指标名，返回可调用对象 f(y_true, y_pred) -> float：
+    auc/prc-auc/rmse/mse/mae/r2/acc/ce/bce 中，auc、mae、r2、ce 直接返回 sklearn 实现；
+    topk/top3/top5/top10 返回带固定 k 的偏函数（partial）；未匹配的键抛 ValueError。
     Gets the metric function corresponding to a given metric name.
 
     Supports:

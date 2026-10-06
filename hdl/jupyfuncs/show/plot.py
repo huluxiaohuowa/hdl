@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/jupyfuncs/show/plot.py
+# 说明：进度条与绘图展示工具
 from os import path as osp
 import typing as t
 from typing_extensions import Literal

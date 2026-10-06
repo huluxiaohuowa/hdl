@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/jupyfuncs/dbtools/query_info.py
+# 说明：数据库查询工具
 import re
 
 import cirpy

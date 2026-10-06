@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：MANIFEST.in
+# 说明：打包文件清单
 include hdl/_version.py
 include hdl/datasets/*.txt
 include hdl/datasets/*.pkl

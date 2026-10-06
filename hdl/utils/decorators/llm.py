@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/utils/decorators/llm.py
+# 说明：通用装饰器
 import time
 from functools import wraps
 

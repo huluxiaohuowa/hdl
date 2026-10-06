@@ -1,3 +1,10 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/utils/llm/chat.py
+# 说明：大模型调用封装
+# 模块功能：按 YAML 配置同时初始化多个 OpenAI 协议客户端的对话封装类 OpenAI_M（按 client_id 选路、
+#           流式输出（stream）、思维链（Chain of Thought）循环与函数调用（function calling）式工具执行），
+#           另含本地 GGUF 命令行多模态推理封装 MMChatter 与目标检测（object detection）入口 object_detect。
 import typing as t
 import asyncio
 import os
@@ -17,6 +24,8 @@ from .vis import draw_and_plot_boxes_from_json, to_img, to_base64
 
 def parse_fn_markdown(markdown_text, params_key="params"):
     """
+    解析大模型给出的函数调用（function calling）Markdown，按 `- key: value` 抽取函数名与参数字典。
+
     Parses a markdown text to extract function name and parameters.
     Args:
         markdown_text (str): The markdown text containing the function name and parameters.
@@ -44,6 +53,8 @@ def parse_fn_markdown(markdown_text, params_key="params"):
     return result
 
 def parse_fn_markdown(markdown_text, params_key="params"):
+    """与上一个同名函数功能相同，正则在 `:` 外额外接受中文冒号 `：` 并去除值首尾空白；
+    因定义顺序靠后，模块实际导出的是本版本（前者被覆盖）。"""
     # 将 Markdown 文本按行分割并去掉空白
     lines = markdown_text.strip().split("\n")
     result = {}
@@ -65,6 +76,8 @@ def parse_fn_markdown(markdown_text, params_key="params"):
 
 def parse_cot_markdown(markdown_text):
     """
+    解析思维链（Chain of Thought）单步 Markdown：`## 标题` 取 title，`- tool/content/stop_thinking` 取其余字段，返回四键字典；缺失字段给空串，stop_thinking 仅在字面为 true 时为真。
+
     Parse a Markdown text formatted as 'COT' (Title, Tool, Content, Stop Thinking) and extract relevant information.
 
     Args:
@@ -108,6 +121,7 @@ def parse_cot_markdown(markdown_text):
 
 
 def run_tool_with_kwargs(tool, func_kwargs):
+    # 把「工具 + 关键字参数字典」包装成单参可调用，便于交给进程池 run_in_executor 执行；返回工具原生结果
     """Run the specified tool with the provided keyword arguments.
 
     Args:
@@ -121,6 +135,10 @@ def run_tool_with_kwargs(tool, func_kwargs):
 
 
 class OpenAI_M:
+    """多客户端大模型封装类：按 YAML/字典配置为每个条目建一个 OpenAI 协议客户端，用 client_id 选择调用对象。
+    关键属性：client_conf（client_id -> {host, model, api_key, client}）、tools（工具名列表）、
+    tool_desc/tool_desc_str（函数调用（function calling）的提示词描述）、cot_desc/od_desc（思维链与目标检测模板）。
+    常用入口：invoke/stream/chat 取回答，cot 做多步思考，agent_response 走工具判定，od/od_v 做图像目标检测。"""
     def __init__(
         self,
         client_conf: dict = None,
@@ -134,6 +152,8 @@ class OpenAI_M:
         **kwargs
     ):
         """
+        配置来源二选一：直接传 client_conf 字典，或传 client_conf_dir 指向的 YAML 路径（load_conf=True 时读取）；随后为每个配置项创建 OpenAI 客户端，并把 tools 的名称映射到 TOOL_DESC 生成函数调用（function calling）提示词。
+
         Initialize an instance of the OpenAI_M class with configuration options.
 
         Args:
@@ -153,6 +173,7 @@ class OpenAI_M:
         """
         self.client_conf = {}
         if client_conf is None:
+            # 未直接给配置字典时必须给 YAML 路径，load_conf 控制是否立刻读文件
             assert client_conf_dir is not None
             self.client_conf_path = client_conf_dir
             if load_conf:
@@ -161,6 +182,7 @@ class OpenAI_M:
             self.client_conf = client_conf
 
         # self.clients = {}
+        # 逐条配置就地挂一个 OpenAI 客户端实例：host 作为 base_url，缺省用占位 api_key
         for _, conf in self.client_conf.items():
             conf["client"] = OpenAI(
                 base_url=conf["host"],
@@ -172,8 +194,10 @@ class OpenAI_M:
         self.tools: list = tools if tools else []
         self.tool_desc: dict = TOOL_DESC
         if tool_desc is not None:
+            # 用户自定义的工具说明覆盖/合并内置说明
             self.tool_desc = self.tool_desc | tool_desc
 
+        # tool_descs 只含触发条件说明（供思维链 cot 用），tool_descs_verbose 额外含要求的 Markdown 输出格式（供函数调用判定用）
         self.tool_descs = [
             self.tool_desc[tool]['desc']
             for tool in self.tools
@@ -199,6 +223,11 @@ class OpenAI_M:
         api_key: str = "dummy_key",
         **kwargs
     ):
+        """运行时新增一个客户端配置：host 不含 http 且给了 port 时拼成 http://host:port/v1（OpenAI 兼容服务的版本路径）。
+        Args:
+            client_id (str): 后续 get_resp/invoke 用它选路。
+            model (str): 该客户端默认模型名，写入配置后由 get_resp 读取。
+        """
         self.client_conf[client_id] = {}
         if not host.startswith('http') and port:
             host = f"http://{host}:{port}/v1"
@@ -211,6 +240,8 @@ class OpenAI_M:
         )
 
     def load_clients(self):
+        """从 self.client_conf_path 读 YAML 多客户端配置，把 host/port 规范化为 http://host:port/v1 后存入 self.client_conf。
+        注意：此处只读配置并改写 host，客户端实例由 __init__ 里的循环创建。"""
         with open(self.client_conf_path, 'r') as file:
             data = yaml.safe_load(file)
 
@@ -229,6 +260,14 @@ class OpenAI_M:
         steps: list = None,
         **kwargs
     ):
+        """思维链（Chain of Thought）多步推理循环：每步用 COT_TEMPLATE + 工具说明作 system 提示，
+        把已累计信息与用户问题拼成 user 消息，解析该步 Markdown 后决定调工具还是收敛。
+        Args:
+            max_step (int): 最大思考步数，超出即结束（仍会产出最后一步结果）。
+            steps (list): 外部传入的步骤列表，函数按引用追加每步解析结果。
+        Yields:
+            tuple: (当前步数, 累积的上下文字符串, 各步解析结果列表)，为生成器，需迭代取中间态。
+        """
         # 初始化当前信息为空字符串，用于累积后续的思考步骤和用户问题
         current_info = ""
         # 初始化步数为0，用于控制最大思考次数
@@ -246,6 +285,7 @@ class OpenAI_M:
                 return
 
             # 调用思考函数，传入当前信息和用户问题，获取下一步思考的结果
+            # invoke 走 stream=False，一次性取回该步完整思维文本再解析
             resp = self.invoke(
                 "现有的步骤得出来的信息：\n" + current_info + "\n用户问题：" + prompt,
                 sys_info=COT_TEMPLATE + self.tool_info,
@@ -276,6 +316,7 @@ class OpenAI_M:
                         **kwargs
                     )
                     if isinstance(tool_resp, Generator):
+                        # agent_response 可能返回流式生成器，非流场景需把分块拼成完整文本再入上下文
                         tool_resp = "".join(tool_resp)
                     # 将工具返回的信息累积到当前信息中
                     current_info += f"\n{tool_resp}"
@@ -314,6 +355,11 @@ class OpenAI_M:
         stream: bool = True,
         **kwargs: t.Any,
     ):
+        # 组装消息体并向 client_id 对应的客户端发请求：sys_info 作 system，assis_info 追加为末条 assistant（引导预答），
+        # 有图时 content 为多模态分块列表（文本 + 每图一项），无图时 content 直接是 prompt 字符串；
+        # image_keys 归一化成 (块类型, 外层键, 内层键) 三元组，以适配不同服务对 image_url/url 的字段命名差异。
+        # Returns: openai 响应对象；stream=True 时为逐块生成器，False 时为完整响应。
+        # 注：形参 stop 未被传给 create 接口，不会实际生效。
         """Prepare and send a request to the chat model, and return the model's response.
 
         Args:
@@ -330,14 +376,17 @@ class OpenAI_M:
             _type_: The response object from the model.
         """
         if not model:
+            # 未显式指定模型时，取该 client_id 配置里预置的 model 名
             model = self.client_conf[client_id]["model"]
 
         # Initialize the content list with at least the user's text input
+        # 多模态消息体：文本先占一项，图片按 image_keys 模板追加
         content = [
             {"type": "text", "text": prompt},
         ]
 
         # Adjust the image_keys to be a tuple of length 3 based on its current length
+        # 把 (块类型, 外层键, 内层键) 补齐成三元组，兼容把图片放在 url / image_url 等不同字段的服务
         if isinstance(image_keys, str):
             image_keys = (image_keys,) * 3
         elif len(image_keys) == 2:
@@ -346,6 +395,7 @@ class OpenAI_M:
             image_keys = (image_keys[0],) * 3
 
         # If images are provided, append them to the content list
+        # images 里的每一项按原样写入内层键：既可以是 data:image/...;base64, 串，也可以是可访问的图片 URL
         if images:
             if isinstance(images, str):
                 images = [images]
@@ -397,6 +447,7 @@ class OpenAI_M:
         *args,
         **kwargs
     ):
+        # 非流式一次取答：强制 stream=False，返回首个候选（choices[0]）的回复字符串
         """Invoke the function with the given arguments and keyword arguments.
 
         Args:
@@ -414,6 +465,7 @@ class OpenAI_M:
         *args,
         **kwargs
     ):
+        # 流式取答：逐块读 choices[0].delta.content，空块（如首块 role 更新）跳过，产出的生成器拼接后即为完整回答
         """Stream content from the response in chunks.
 
             Args:
@@ -431,6 +483,7 @@ class OpenAI_M:
 
 
     def chat(self, *args, stream=True, **kwargs):
+        # stream/非流二选一的统一入口：stream=True 返回分块文本生成器，False 返回完整字符串
         """Call either the stream or invoke method based on the value of the stream parameter.
 
         Args:
@@ -452,6 +505,9 @@ class OpenAI_M:
         stream = True,
         **kwargs: t.Any
     ):
+        # 智能体（agent）单轮入口：先让模型按 FN_TEMPLATE 判定是否要函数调用（function calling），
+        # 判定为 None 就直接对话；否则执行工具，并把工具结果作为 system 上下文再让模型据此回答用户问题。
+        # Returns: stream=True 返回文本分块生成器，False 返回完整字符串。
         """'''Generate agent response based on the given prompt.
 
         Args:
@@ -490,6 +546,9 @@ class OpenAI_M:
         prompt: str,
         **kwargs: t.Any,
     ):
+        # 函数调用（function calling）决策：用 FN_TEMPLATE + 各工具的详细中文说明（含要求的 Markdown 回格式）作 system 提示，
+        # 让模型只回一段 `- function_name: ...` / `- 参数: ...` 的文本；不做 JSON 解析，原始文本直接返回给上层再解析。
+        # Returns: str，模型给出的决策 Markdown 文本。
         """Get decision based on the given prompt.
 
         Args:
@@ -518,6 +577,10 @@ class OpenAI_M:
         self,
         decision_dict_str: str,
     ):
+        # 决策文本 → 工具执行：把 get_decision 的原始 Markdown 现场再解析一次取 function_name 与 params，
+        # 在 self.tools 里按名字匹配；object_detect 需要把当前 llm 实例注入参数才能调用视觉模型。
+        # Returns: str/工具原生结果；未选中工具或执行异常时返回空串。
+        # 注：self.tools 是名称列表，getattr(self.tools, 名称) 取不到函数，异常会被 except 吞掉并返回 ""。
         """Get the result of a tool based on the decision made.
 
         Args:
@@ -551,6 +614,9 @@ class OpenAI_M:
         **kwargs: t.Any
     ):
         """
+        get_tool_result 的异步版本：决策调用放进线程（asyncio.to_thread），工具执行放进进程池（ProcessPoolExecutor）以免阻塞事件循环。
+        Returns: await 后得到工具返回值；解析失败、未选中工具或执行异常时返回空串。
+
         Asynchronous version of the get_tool_result function that can run in parallel using multiprocessing.
 
         Args:
@@ -591,6 +657,8 @@ class OpenAI_M:
         image,
     ):
         """
+        目标检测（object detection）：把图片统一转成 data:image/...;base64 串塞进多模态消息，用 OD_TEMPLATE 作 prompt 要求模型只回边界框 JSON 列表，返回该 JSON 字符串（未做解析，交给 draw_and_plot_boxes_from_json）。
+
         Perform object detection on the given image.
         Args:
             image_path (str): The path to the image file on which to perform object detection.
@@ -610,6 +678,9 @@ class OpenAI_M:
         save_path: str=None,
     ):
         """
+        od 的可视化版本：先取回边界框 JSON，再按图像尺寸把 0~1000 归一化坐标还原并画框出图。
+        Returns: (带标注的 PIL 图像, 实际保存路径 save_path)。
+
         Perform object detection on an image and save the result.
         Args:
             image_path (str): The path to the input image.
@@ -623,6 +694,9 @@ class OpenAI_M:
 
 
 class MMChatter():
+    """本地 GGUF 多模态推理封装：不连 HTTP 服务，而是把可执行文件路径（cli_dir，如 llama.cpp 的 CLI）、
+    主模型 GGUF（model_dir）与视觉投影 GGUF（mmproj_dir）三者记住，get_resp 时用子进程一次性跑图 + 提示词。
+    属性：cli_dir / model_dir / mmproj_dir 三个路径。典型用法：MMChatter(...).get_resp(prompt=..., image=...)。"""
     def __init__(
         self,
         cli_dir: str,

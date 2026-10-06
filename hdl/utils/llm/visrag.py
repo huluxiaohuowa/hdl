@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/utils/llm/visrag.py
+# 说明：大模型调用封装
 import argparse
 from PIL import Image
 import hashlib

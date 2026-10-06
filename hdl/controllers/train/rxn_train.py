@@ -1,3 +1,8 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/controllers/train/rxn_train.py
+# 说明：训练流程与 Trainer 实现
+# 模块功能：反应（reaction）SMILES 模型的训练流程：单批/单轮训练函数、多轮循环 train_rxn，以及组装数据集、优化器与模型的入口 rxn_engine
 from os import path as osp
 import typing as t
 
@@ -25,12 +30,16 @@ def train_a_batch(
     individual,
     **kwargs
 ):
+    """单批次训练：batch_data[0] 为反应 SMILES 经分词后得到的输入张量列表，batch_data[1] 转置后为逐任务标签；返回 (总损失, 各任务损失列表)，individual=False 时第二项为空列表"""
+    # 清空上一批残留梯度
     optimizer.zero_grad()
 
     X = [x.to(device) for x in batch_data[0]]
+    # 标签矩阵转置成 (任务数, 批样本数) 以对齐多任务输出
     y = batch_data[1].T.to(device)
 
     y_preds = model(X)
+    # 多任务多分类损失：按 loss_func 指定的每个任务损失加权求和
     loss = mtmc_loss(
         y_preds,
         y,
@@ -38,6 +47,7 @@ def train_a_batch(
         individual=individual, **kwargs
     )
 
+    # 拆分总损失与各任务独立损失
     if not individual:
         final_loss = loss
         individual_losses = []
@@ -63,6 +73,8 @@ def train_an_epoch(
     individual: bool = True,
     **kwargs
 ):
+    """一轮（epoch）训练：epoch_id 小于 num_warm_epochs 时冻结编码器（freeze_encoder=True）做预热，之后放开；遍历 data_loader 逐批调用 train_a_batch，每批把总损失与各任务损失追加写入 base_dir/loss.log，轮末按 model.<epoch_id>.ckpt 保存检查点（checkpoint）"""
+    # 预热（warmup）阶段置 model.freeze_encoder=True，具体冻结哪些参数由模型实现决定
     if epoch_id < num_warm_epochs:
         model.freeze_encoder = True
     else:
@@ -78,6 +90,7 @@ def train_an_epoch(
             individual=individual,
             **kwargs
         )
+        # 每批追加一行损失记录：总损失与各任务损失，制表符分隔
         with open(
             osp.join(base_dir, 'loss.log'),
             'a'
@@ -89,6 +102,7 @@ def train_an_epoch(
                 f.write('\t')
             f.write('\n')
  
+    # 轮末存检查点（checkpoint）：文件名带轮次，内容含模型、优化器、轮次与最后一个批次的损失
     ckpt_file = osp.join(
         base_dir,
         f'model.{epoch_id}.ckpt'
@@ -116,9 +130,11 @@ def train_rxn(
     **kwargs
 ):
 
+    """多轮训练循环：给了 ckpt_file 时先按 train=True 载入模型、优化器与已完成轮次，后续 epoch_id 从该轮次继续编号；再跑 num_epochs 轮 train_an_epoch"""
     epoch = 0
     if ckpt_file is not None:
 
+        # 断点续训：epoch 为检查点里记录的已训轮数
         model, optimizer, epoch, _ = load_model(
             ckpt_file,
             model=model,
@@ -127,6 +143,7 @@ def train_rxn(
             device=device,
         )
  
+    # epoch_id = 续训起始轮数 + 本次循环序号
     for epoch_id in tnrange(num_epochs):
 
         train_an_epoch(
@@ -167,8 +184,10 @@ def rxn_engine(
     **kwargs
 ):
 
+    """反应模型训练入口：建输出目录 → build_rxn_mu 构建模型与设备（多卡时 nn.DataParallel 包装）→ Adam 优化器（lr、weight_decay=0）→ RXNCSVDataset + RXNLoader 读数据 → 调 train_rxn 训 num_epochs 轮。num_warm_epochs 控制预热轮数，individual 控制是否记录各任务损失"""
     base_dir = osp.abspath(base_dir)
     makedirs(base_dir)
+    # 按类别数、隐藏层配置与输出激活函数构建反应模型
     model, device = build_rxn_mu(
         nums_classes=nums_classes,
         hard=hard,
@@ -179,7 +198,9 @@ def rxn_engine(
         device_id=device_id
     )
     if torch.cuda.device_count() > 1:
+        # 多 GPU 时用 DataParallel 复制模型分片计算
         model = nn.DataParallel(model)
+    # 切到训练模式（与预测时的 eval 相对应）
     model.train()
     
     params = [{
@@ -187,6 +208,7 @@ def rxn_engine(
         'lr': lr,
         'weight_decay': 0
     }]
+    # 单一参数组：全部模型参数共用同一学习率与权重衰减
     optimizer = Adam(params)
  
     dataset = RXNCSVDataset(
@@ -195,6 +217,7 @@ def rxn_engine(
         smiles_col=smiles_col,
         target_cols=target_cols,
     )
+    # 反应专用加载器：按 batch_size 组批，shuffle 控制每轮是否打乱
     data_loader = RXNLoader(
         dataset=dataset,
         batch_size=batch_size,

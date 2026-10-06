@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：setup.py
+# 说明：打包与发布配置
 from setuptools import setup, find_packages
 import setuptools_scm
 

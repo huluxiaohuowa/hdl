@@ -1,3 +1,8 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/jupyfuncs/dl/dataframe.py
+# 说明：深度学习张量与模型辅助工具
+# 模块功能：通用 pandas 工具（删除匹配列名的列、打乱行序），与化学或神经网络逻辑无关。
 def rm_index(df):
     """Remove columns with 'Unnamed' in their names from the DataFrame.
     

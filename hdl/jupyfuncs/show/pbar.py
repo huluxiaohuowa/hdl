@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/jupyfuncs/show/pbar.py
+# 说明：进度条与绘图展示工具
 import sys
 from os import path as osp
 from IPython.core.display import HTML

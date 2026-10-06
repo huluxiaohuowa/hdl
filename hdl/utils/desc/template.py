@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/utils/desc/template.py
+# 说明：功能描述模板
 FN_TEMPLATE = """
 
 你是一个可以调用函数来执行任务的人工智能助手，根据用户最后的问题来决定是否调用函数

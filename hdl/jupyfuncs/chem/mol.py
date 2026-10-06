@@ -1,3 +1,9 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/jupyfuncs/chem/mol.py
+# 说明：化学信息学工具（RDKit / Jupyter）
+# 模块功能：Jupyter 下的 RDKit 分子可视化与分子操作助手——2D/3D 绘图与高亮、R 基团分解（R-group decomposition）展示、
+#          反应 SMILES 拆分与酰胺偶联产物回溯、互变异构体（tautomer）标准化与排序、按原子索引删原子重建分子。
 # Jupyter funcs
 import os
 import re
@@ -43,21 +49,27 @@ from rdkit.Chem import rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.MolStandardize import rdMolStandardize
 from rdkit import Geometry
+# 2D 坐标生成优先用 CoordGen（比 RDKit 自带算法更快、排版更规整）
 rdDepictor.SetPreferCoordGen(True)
 import pandas as pd
 from PIL import Image as pilImage
 from io import BytesIO
 from IPython.display import SVG, Image
 from ipywidgets import interact
+# molvs 在本模块只用到 standardize_smiles，对最大片段做 SMILES 标准化
 import molvs as mv
 
 
+# Notebook 内联显示分子时改用 SVG 矢量图，并设定默认绘图尺寸
 IPythonConsole.ipython_useSVG = True
 IPythonConsole.molSize = (450, 350)
+# 子结构匹配参数：允许芳香原子与共轭（conjugated）非芳香原子互相匹配，
+# 这样酮/烯等共轭体系的 SMARTS 在 Kekulize 前后都能命中
 params = Chem.SubstructMatchParameters()
 params.aromaticMatchesConjugated = True 
 
 __all__ = [
+    # 供外部 `from ... import *` 使用的绘图/展示辅助函数
     'draw_mol',
     'draw_confs',
     'show_decomp',
@@ -70,6 +82,7 @@ __all__ = [
 ]
 
 
+# 三套色盲友好（colorblind-friendly）调色板，RGB 分量为 0-255 整数，供高亮按序取色
 COLORS = {
     # "Tol" colormap from https://davidmathlogic.com/colorblind
     'tol': [
@@ -138,6 +151,14 @@ COLORS = {
 
 
 def norm_colors(colors=COLORS):
+    """把调色板的 0-255 整数 RGB 归一到 RDKit 绘图要求的 0-1 浮点区间。
+
+    Args:
+        colors: 形参未被使用，函数实际总是深拷贝模块级 COLORS。
+
+    Returns:
+        dict：{调色板名: [(r, g, b), ...]}，分量已除以 255。
+    """
     colors = deepcopy(COLORS)
     for k, v in colors.items():
         for i, color in enumerate(v):
@@ -155,6 +176,20 @@ def drawmol_with_hi(
     width=350,
     height=200,
 ):
+    """用 Cairo 后端绘制带高亮的单个分子，返回 PNG 字节串。
+
+    Args:
+        mol: 待绘制的 Chem.Mol。
+        legend: 分子下方的文字标签。
+        atom_hi_dict: {原子索引: (r, g, b)} 原子高亮色。
+        bond_hi_dict: {键索引: (r, g, b)} 键高亮色。
+        atomrads_dict: {原子索引: 半径} 原子高亮圆圈大小。
+        widthmults_dict: {原子索引: 倍数} 与该原子相连键的宽度倍数。
+        width / height: 画布像素尺寸。
+
+    Returns:
+        bytes：PNG 图像二进制内容（未 display，需自行交给 IPython.display.Image）。
+    """
     d2d = rdMolDraw2D.MolDraw2DCairo(width, height)
     d2d.ClearDrawing()
     d2d.DrawMoleculeWithHighlights(
@@ -170,6 +205,15 @@ def drawmol_with_hi(
 
 
 def show_atom_number(mol, label='atomNote'):
+    """深拷贝分子并把每个原子的索引写成绘图标签属性，用于在图上标注原子序号。
+
+    Args:
+        mol: 输入 Chem.Mol（不被修改）。
+        label: RDKit 绘图识别的注释属性名，默认 'atomNote'。
+
+    Returns:
+        Chem.Mol：带原子序号标签的新分子副本。
+    """
     new_mol = deepcopy(mol)
     for atom in new_mol.GetAtoms():
         atom.SetProp(label, str(atom.GetIdx()))
@@ -177,6 +221,16 @@ def show_atom_number(mol, label='atomNote'):
 
 
 def moltosvg(mol, molSize=(500, 500), kekulize=True):
+    """把分子渲染成 SVG 文本，并剥掉内层的 'svg:' 标签名以便 Notebook 嵌套显示。
+
+    Args:
+        mol: Chem.Mol。
+        molSize: (宽, 高) 像素。
+        kekulize: 形参未被使用，实际不做 Kekulize，直接画 RDKit 感知到的芳香性。
+
+    Returns:
+        str：SVG 源码字符串。
+    """
     mc = mol
     drawer = rdMolDraw2D.MolDraw2DSVG(molSize[0], molSize[1])
     drawer.DrawMolecule(mc)
@@ -186,10 +240,25 @@ def moltosvg(mol, molSize=(500, 500), kekulize=True):
 
 
 def draw_mol(mol):
+    """在 Notebook 里显示分子结构图，并在每个原子旁标出原子索引。
+
+    Returns:
+        IPython.display.SVG：可直接展示的 SVG 对象。
+    """
     return SVG(moltosvg(show_atom_number(mol)))
 
 
 def drawit(m, p, confId=-1):
+    """把分子的指定构象（conformer）以棍状模型送进已存在的 py3Dmol 视图并显示。
+
+    Args:
+        m: Chem.Mol，需含三维构象。
+        p: py3Dmol view 对象（复用同一个视图，每次先清空模型）。
+        confId: 构象索引，-1 表示 RDKit 默认（第一个/唯一）构象。
+
+    Returns:
+        py3Dmol 视图的 show() 返回值（JS 显示指令对象）。
+    """
     mb = Chem.MolToMolBlock(m, confId=confId)
     p.removeAllModels()
     p.addModel(mb, 'sdf')
@@ -200,6 +269,14 @@ def drawit(m, p, confId=-1):
 
 
 def draw_confs(m):
+    """为分子的每个三维构象生成一个可拖动滑块的交互式 3D 查看器。
+
+    Args:
+        m: Chem.Mol，构象数决定滑块取值范围 (0, GetNumConformers()-1)。
+
+    Returns:
+        ipywidgets.interact 控件：滑块切换 confId，视图复用同一 py3Dmol view。
+    """
     import py3Dmol
     p = py3Dmol.view(width=500, height=500)
     return interact(drawit,
@@ -209,17 +286,42 @@ def draw_confs(m):
 
 
 def do_decomp(mols, cores, options):
+    """做 R 基团分解（R-group decomposition）：把一批分子相对给定母核（core）切成骨架 + 取代基（R group）。
+
+    Args:
+        mols: 待拆分的 Chem.Mol 列表。
+        cores: 母核/骨架 Chem.Mol 列表（作为匹配模板）。
+        options: rdRGroupDecomposition.RGroupDecompositionParameters 对象，本函数会强制改写其
+                 rgroupLabelling 为 AtomMap（按原子映射号给 R 基团命名）。
+
+    Returns:
+        RGroupDecomposition 对象，已 Process()，可取 GetRGroupsAsRows()/GetRGroupsAsColumns()。
+    """
+    # 用原子映射号（atom map number）标记各 R 位点，使不同分子的同一取代位置列名一致
     options.rgroupLabelling = RGroupLabelling.AtomMap
     decomp = RGroupDecomposition(cores, options)
     for mol in mols:
         decomp.Add(mol)
-    decomp.Process()
+    decomp.Process()  # 统一做骨架匹配与 R 基团切分
     return decomp
 
 
 def show_decomp(mols, cores, options, item=False):
+    """展示 R 基团分解（R-group decomposition）结果。
+
+    Args:
+        mols: 待拆分分子列表。
+        cores: 母核列表（列展示时 'input core' 取 cores[0]）。
+        options: RGroupDecompositionParameters 对象。
+        item: True 则返回纯文本摘要，False（默认）返回可显示的 HTML 表格。
+
+    Returns:
+        str 或 IPython.display.HTML：文本形如 "R基团名:SMILES ..." 空格拼接；
+        HTML 表格含各 R 列、分子图（mol 列）与输入母核列。
+    """
     decomp = do_decomp(mols, cores, options)
     if item:
+        # 逐行逐列展开成 "分组:SMILES"，便于把结果塞进一行文本/日志
         rows = decomp.GetRGroupsAsRows()
         items = [
             '{}:{}'.format(
@@ -229,15 +331,29 @@ def show_decomp(mols, cores, options, item=False):
         ]
         return ' '.join(items)
     else:
+        # 按列取 R 基团（每列对应一个取代位点，该位点缺失的分子填 None），并附上原始分子与母核列
         cols = decomp.GetRGroupsAsColumns()
         cols['mol'] = mols
         cols['input core'] = cores[0]
         df = pd.DataFrame(cols)
+        # 让 PandasTools 把 mol 列渲染成结构图而不是对象字串
         PandasTools.ChangeMoleculeRendering(df)
         return HTML(df.to_html())
 
 
 def get_ids_folds(id_list, num_folds, need_shuffle=False):
+    """把 id 列表切成 k 折，返回每折的 (训练 id, 验证 id) 组合（交叉验证用）。
+
+    Args:
+        id_list: id 序列；need_shuffle 为真时会被就地打乱（原地修改传入列表）。
+        num_folds: 折数 k，要求 len(id_list) >= k，否则断言失败。
+        need_shuffle: 是否先随机打乱再分折。
+
+    Returns:
+        list[tuple[list, list]]：长度 k，第 i 项为 (其余折合并的训练 id, 第 i 折验证 id)。
+        每折大小固定为 int(N/k)，且最后一折的右边界被截到 N-1，
+        因此 N 不能被 k 整除时末尾若干 id 不会进入任何一折。
+    """
     if need_shuffle:
         from random import shuffle
         shuffle(id_list)
@@ -258,6 +374,7 @@ def get_ids_folds(id_list, num_folds, need_shuffle=False):
     
     id_blocks = []
     for i in range(num_folds):
+        # 第 i 块作验证集，其余块拼接成训练集
         id_blocks.append(
             (list(itertools.chain.from_iterable([blocks[j] for j in range(num_folds) if j != i])),
              blocks[i])
@@ -266,6 +383,7 @@ def get_ids_folds(id_list, num_folds, need_shuffle=False):
     return id_blocks
 
 
+# 药效团特征族（pharmacophore feature family）白名单：氢键供体/受体、芳香性、疏水基团
 keep = ["Donor", "Acceptor", "Aromatic", "Hydrophobe", "LumpedHydrophobe"]
 
 
@@ -279,10 +397,21 @@ def show_pharmacophore(
         'defined_BaseFeatures.fdef'
     )
 ):
+    """检测单个分子结构上的药效团特征（pharmacophore features），逐个高亮打印出来。
+
+    Args:
+        sdf_path: SDF 路径，只取第一条记录作为待分析分子。
+        keep: 保留的特征族名集合，不在列表里的族（如正/负电离中心）被过滤掉。
+        fdf_dir: 特征定义文件（.fdef）路径，决定各特征的 SMARTS 定义。
+
+    Returns:
+        None：结果通过 print 输出索引/族名/类型/原子 id，并用 display 逐特征显示高亮图。
+    """
     template_mol = [m for m in Chem.SDMolSupplier(sdf_path)][0]
     fdef = AllChem.BuildFeatureFactory(
         fdf_dir
     )
+    # 按 .fdef 定义在分子上匹配特征点（每个特征带所属族、类型与命中的原子 id）
     prob_feats = fdef.GetFeaturesForMol(template_mol)
     prob_feats = [f for f in prob_feats if f.GetFamily() in keep]
     # prob_points = [list(x.GetPos()) for x in prob_feats]

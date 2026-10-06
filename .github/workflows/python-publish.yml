@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：.github/workflows/python-publish.yml
+# 说明：CI 发布流水线
 name: Build and Publish to PyPI
 
 on:

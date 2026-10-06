@@ -1,4 +1,8 @@
 #!/bin/bash
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：update_main.sh
+# 说明：主分支同步与发布脚本
 
 MAIN_BRANCH="main"
 

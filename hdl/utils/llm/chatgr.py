@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/utils/llm/chatgr.py
+# 说明：大模型调用封装
 import argparse
 import gradio as gr
 from .chat import OpenAI_M

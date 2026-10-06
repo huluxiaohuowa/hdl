@@ -1,10 +1,18 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/jupyfuncs/chem/pdb_ext.py
+# 说明：化学信息学工具（RDKit / Jupyter）
+# 模块功能：从 PDB 复合物结构里拆出蛋白（protein）与配体（ligand），用 pypdb 查到的 SMILES 作模板
+#          给只有原子坐标的 PDB 配体指回键级（bond order），分别导出蛋白 .pdb 与配体 .sdf。
 # Extract ligand and pdb 
 
 import sys
+# prody 提供结构解析与原子选择：parsePDB / writePDB / writePDBStream 等
 from prody import *
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from io import StringIO
+# pypdb 用于查询 RCSB 化学组分描述（含配体 SMILES）
 import pypdb
 
 
@@ -17,6 +25,8 @@ __all__ = [
 
 def get_pdb_components(pdb_id):
     """
+    中文说明：解析 PDB 结构后用原子选择表达式分离蛋白（protein）与配体（ligand，排除水）。
+    输入 pdb_id 为 prody.parsePDB 可识别的 PDB ID 或结构文件路径；返回两个 AtomGroup，缺失的组分为 None。
     Split a protein-ligand pdb into protein and ligand components
     :param pdb_id:
     :return:
@@ -29,6 +39,9 @@ def get_pdb_components(pdb_id):
 
 def process_ligand(ligand, res_name):
     """
+    中文说明：给 PDB 配体补键级——从 pypdb 取该残基名对应的 SMILES 作模板，
+    把配体子集写成 PDB 文本再读回 RDKit 分子（此时只有连接、无键级），
+    最后用 AssignBondOrdersFromTemplate 按原子几何匹配把模板键级迁移过来。
     Add bond orders to a pdb ligand
     1. Select the ligand component with name "res_name"
     2. Get the corresponding SMILES from pypdb
@@ -41,19 +54,24 @@ def process_ligand(ligand, res_name):
     :return: molecule with bond orders assigned
     """
     output = StringIO()
+    # 只取指定残基名的原子，得到一个配体子集
     sub_mol = ligand.select(f"resname {res_name}")
     chem_desc = pypdb.describe_chemical(f"{res_name}")
+    # 从 RCSB 化学组分描述里取该 HETATM 残基的 SMILES，作为键级模板
     sub_smiles = chem_desc["describeHet"]["ligandInfo"]["ligand"]["smiles"]
     template = AllChem.MolFromSmiles(sub_smiles)
+    # 配体子集写进内存流，再作为 PDB block 读入 RDKit（坐标保留、键级未知）
     writePDBStream(output, sub_mol)
     pdb_string = output.getvalue()
     rd_mol = AllChem.MolFromPDBBlock(pdb_string)
+    # 模板与坐标分子原子数/几何一致时才成功；失败会抛异常，说明残基名或坐标不匹配
     new_mol = AllChem.AssignBondOrdersFromTemplate(template, rd_mol)
     return new_mol
 
 
 def write_pdb(protein, pdb_name):
     """
+    中文说明：把 prody 的蛋白 AtomGroup 落盘为 "<pdb_name>_protein.pdb"，只打印写出路径，无返回值。
     Write a prody protein to a pdb file
     :param protein: protein object from prody
     :param pdb_name: base name for the pdb file
@@ -66,6 +84,8 @@ def write_pdb(protein, pdb_name):
 
 def write_sdf(new_mol, pdb_name, res_name):
     """
+    中文说明：把 RDKit 分子（含 3D 坐标与已指定键级）写成 "<pdb_name>_<res_name>_ligand.sdf"，只写一条记录。
+    参数含义：new_mol 为待写出的分子；pdb_name 为文件名前缀（PDB ID）；res_name 为配体残基名，用于区分同结构中的多种配体。
     Write an RDKit molecule to an SD file
     :param new_mol:
     :param pdb_name:
@@ -80,6 +100,7 @@ def write_sdf(new_mol, pdb_name, res_name):
 
 def main(pdb_name):
     """
+    中文说明：整条流水线——解析结构、写出蛋白 PDB，再对配体中出现的每种残基名逐个补键级并写成独立 SDF。
     Read Ligand Expo data, split pdb into protein and ligands,
     write protein pdb, write ligand sdf files
     :param pdb_name: id from the pdb, doesn't need to have an extension
@@ -88,6 +109,7 @@ def main(pdb_name):
     protein, ligand = get_pdb_components(pdb_name)
     write_pdb(protein, pdb_name)
 
+    # 去重后的配体残基名：同名残基（多个拷贝）只按第一种坐标处理一次
     res_name_list = list(set(ligand.getResnames()))
     for res in res_name_list:
         new_mol = process_ligand(ligand, res)

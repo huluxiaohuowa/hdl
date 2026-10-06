@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/utils/llm/llama_chat.py
+# 说明：大模型调用封装
 import typing as t
 
 from llama_cpp import Llama

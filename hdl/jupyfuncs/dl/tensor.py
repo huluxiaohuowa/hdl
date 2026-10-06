@@ -1,3 +1,8 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/jupyfuncs/dl/tensor.py
+# 说明：深度学习张量与模型辅助工具
+# 模块功能：稀疏矩阵乘、标签与 one-hot 张量互转、距离矩阵、有效索引筛选、平滑最大值等张量辅助函数。
 import typing as t
 from collections import defaultdict
 
@@ -10,6 +15,8 @@ def spmmsp(
     sp1: torch.sparse.Tensor,
     sp2: torch.sparse.Tensor
 ) -> torch.sparse.Tensor:
+    """稀疏矩阵乘法（torch_sparse.spspmm）：要求 sp1 的列数等于 sp2 的行数且两者都是稀疏张量，
+    返回形状 (sp1.size(0), sp2.size(-1)) 的 COO 稀疏张量。"""
     from torch_sparse import spspmm
     assert sp1.size(-1) == sp2.size(0) and sp1.is_sparse and sp2.is_sparse
     m = sp1.size(0)
@@ -29,6 +36,9 @@ def spmmsp(
 
 def label_to_onehot(ls, class_num, missing_label=-1):
     """
+    把类别标签编码为 one-hot：missing_label（默认 -1）对应行置零。
+    Tensor 分支用 clamp + scatter，列数为 class_num；list 分支的列数由标签最大值 +1 决定（不使用 class_num）；
+    非可迭代输入返回长度为 class_num 的一维数组，NaN/None 同样保持全零。
     example:
     >>>label_to_onehot([2,3,-1],6,-1)
     array([[ 0.,  0.,  1.,  0.],
@@ -61,6 +71,7 @@ def label_to_onehot(ls, class_num, missing_label=-1):
 
 
 def onehot_to_label(tensor):
+    """one-hot 沿最后一维取 argmax 还原类别索引，支持 torch.Tensor 与 numpy 数组；其他类型隐式返回 None。"""
     if isinstance(tensor, torch.Tensor):
         return torch.argmax(tensor, dim=-1)
     elif isinstance(tensor, np.ndarray):
@@ -73,11 +84,23 @@ def label_to_tensor(
     missing_label=-1,
     device=torch.device('cpu')
 ):
+    """把标签转成 num_classes 维 one-hot 张量（多标签时用 scatter 置多个 1）。
+
+    Args:
+        label: 单个标签、标签列表，或每个元素为一串标签索引的嵌套序列。
+        num_classes (int): one-hot 维度。
+        missing_label: 视为缺失的标签，返回全零向量。
+        device: 输出张量设备。
+
+    Returns:
+        torch.Tensor: 形状 (num_classes,)；嵌套序列输入时先按最后一个标签补齐长度，再 vstack 成 (序列数, num_classes)。
+    """
     if isinstance(label, t.List) and not any(label):
         return torch.zeros(num_classes).to(device)
     elif isinstance(label, t.List) and isinstance(label[0], t.Iterable):
         max_length = max([len(_l) for _l in label])
         index = [_l + _l[-1:] * (max_length - len(_l)) for _l in label]
+        # 对每条序列的每个标签索引 scatter 出 1，实现多标签 one-hot
         tensor_list = []
 #         tensor = torch.zeros(len(label), num_classes, device=device)
         for _idx in index:
@@ -96,6 +119,7 @@ def label_to_tensor(
 
 
 def tensor_to_label(tensor, threshold=0.5):
+    """one-hot/概率张量逆映射：取大于 threshold 的位置，按行（样本）归组为类别索引列表的列表。"""
     label_list, label_dict = [], defaultdict(list)
     labels = (tensor > threshold).nonzero(as_tuple=False)
     for label in labels:
@@ -108,6 +132,7 @@ def tensor_to_label(tensor, threshold=0.5):
 def get_dist_matrix(
     a: np.ndarray, b: np.ndarray
 ):
+    """用 scipy.spatial.distance.cdist 计算两组向量的两两距离矩阵，返回形状 (len(a), len(b))。"""
     return cdist(a, b)
     # aSumSquare = np.sum(np.square(a), axis=1)
     # bSumSquare = np.sum(np.square(b), axis=1)
@@ -117,6 +142,7 @@ def get_dist_matrix(
 
 
 def get_valid_indices(labels):
+    """返回非 NaN 标签的位置下标：torch.Tensor 用 isnan 判定，其他输入转 pandas 数组后用 isna。"""
     if isinstance(labels, torch.Tensor):
         nan_indices = torch.isnan(labels)
         valid_indices = (
@@ -136,6 +162,8 @@ def smooth_max(
     inf_k: int = None,
     **kwargs
 ):
+    """平滑最大值（log-sum-exp 近似）：返回 log(Σ exp(inf_k * x)) / inf_k，inf_k 默认 10；
+    kwargs 透传给 torch.sum（如 dim），因此可按维归约。"""
     if inf_k is None:
         inf_k = 10
     max_value = torch.log(
@@ -148,6 +176,7 @@ def smooth_max(
 
 
 def list_df(listA, listB):
+    """把两个列表当作集合，返回 (交集, 并集, B 减 A, A 减 B) 四个列表。"""
     retB = list(set(listA).intersection(set(listB)))
 
     retC = list(set(listA).union(set(listB)))

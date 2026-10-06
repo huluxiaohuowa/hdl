@@ -1,3 +1,7 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/data/dataset/graph/molnet.py
+# 说明：分子数据集构建与切分
 # import os
 import copy
 import os.path as osp

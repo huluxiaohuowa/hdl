@@ -1,3 +1,8 @@
+# 作者：胡建星（Jianxing Hu）
+# 邮箱：j.hu@pku.edu.cn
+# 文件：hdl/utils/schedulers/norm_lr.py
+# 说明：学习率调度器
+# 模块功能：Noam 风格学习率调度——先按步线性 warmup 到 max_lr，再指数衰减到 final_lr。
 from typing import List, Union
 import numpy as np
 
@@ -7,6 +12,8 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 class NoamLR(_LRScheduler):
     """
+    学习率按优化步（step）分两段变化：前 warmup_steps 步从 init_lr 线性升到 max_lr（warmup），
+    其后每步乘以 exponential_gamma 指数衰减，直到 final_lr；每个参数组有独立的轮数与学习率列表。
     Noam learning rate scheduler with piecewise linear increase and exponential decay.
     The learning rate increases linearly from init_lr to max_lr over the course of
     the first warmup_steps (where warmup_steps = warmup_epochs * steps_per_epoch).
@@ -24,6 +31,7 @@ class NoamLR(_LRScheduler):
                  max_lr: List[float],
                  final_lr: List[float]):
         """
+        初始化调度器：各列表长度必须等于优化器参数组个数，warmup/total 步数由轮数乘每轮步数得到。
         Initializes the learning rate scheduler.
         :param optimizer: A PyTorch optimizer.
         :param warmup_epochs: The number of epochs during which to linearly increase the learning rate.
@@ -48,20 +56,24 @@ class NoamLR(_LRScheduler):
 
         self.current_step = 0
         self.lr = init_lr
+        # warmup 步数 = warmup 轮数 × 每轮步数；linear_increment 为 warmup 阶段每步的线性增量
         self.warmup_steps = (self.warmup_epochs * self.steps_per_epoch).astype(int)
         self.total_steps = self.total_epochs * self.steps_per_epoch
         self.linear_increment = (self.max_lr - self.init_lr) / self.warmup_steps
 
+        # 指数衰减因子：在 total_steps - warmup_steps 步内把 max_lr 衰减到 final_lr
         self.exponential_gamma = (self.final_lr / self.max_lr) ** (1 / (self.total_steps - self.warmup_steps))
 
         super(NoamLR, self).__init__(optimizer)
 
     def get_lr(self) -> List[float]:
         """Gets a list of the current learning rates."""
+        # 返回各参数组当前的学习率列表
         return list(self.lr)
 
     def step(self, current_step: int = None):
         """
+        按当前步数选取所处阶段（warmup 线性段 / 衰减段 / 超出总步数），并把结果写回优化器各参数组。
         Updates the learning rate by taking a step.
         :param current_step: Optionally specify what step to set the learning rate to.
         If None, current_step = self.current_step + 1.
@@ -90,6 +102,7 @@ def build_lr_scheduler(
     lr: float,
 ) -> _LRScheduler:
     """
+    用单参数组的设置构造 NoamLR：init_lr 与 final_lr 均取 lr 的 1/10，max_lr 取 lr。
     Builds a learning rate scheduler.
     :param optimizer: The Optimizer whose learning rate will be scheduled.
     :param args: Arguments.

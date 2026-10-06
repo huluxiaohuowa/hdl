@@ -2,6 +2,8 @@
 # 邮箱：j.hu@pku.edu.cn
 # 文件：hdl/utils/llm/llm_wrapper.py
 # 说明：大模型调用封装
+# 模块功能：OpenAIWrapper 按 YAML/字典配置同时初始化多个 OpenAI 协议客户端（对话与文本嵌入均可），
+#           统一支持多轮历史、图片与视频注入消息体、函数调用（function calling）与结构化输出解析。
 import yaml
 import typing as t
 
@@ -9,6 +11,10 @@ from openai import OpenAI
 
 
 class OpenAIWrapper(object):
+    """按配置文件同时初始化多个 OpenAI 协议客户端的包装类：client_conf 是 client_id -> {host, model, api_key, client_type, client} 的字典，
+    每次调用用 client_id 选路，避免为每个模型/服务单独建对象。
+    关键属性：client_conf（配置与客户端实例）、client_conf_path（YAML 路径，load_clients 用）。
+    典型用法：add_client/load_clients 配置好后，用 get_resp 取原始响应，invoke/stream 取解析后的文本或函数调用（function calling）参数，embedding 取文本嵌入（text embedding）向量。"""
     def __init__(
         self,
         client_conf: dict = None,
@@ -18,6 +24,9 @@ class OpenAIWrapper(object):
         **kwargs
     ):
         """
+        配置来源二选一：client_conf 字典直接用，或 client_conf_dir 指向 YAML 且 load_conf=True 时读文件；
+        随后为每条配置创建一个 OpenAI 客户端挂到 conf["client"]，缺 api_key 时用占位串，并把缺省 client_type 记为 "chat"。
+
         Initializes the client configuration for the class.
 
         Args:
@@ -73,6 +82,8 @@ class OpenAIWrapper(object):
         **kwargs
     ):
         """
+        运行时追加一个客户端：host 不以 http 开头且给了 port 时拼成 http://host:port/v1，并把 kwargs 里的 client_type 弹出记为 "chat"（其余 kwargs 交给 OpenAI 客户端）。
+
         Add a new client configuration to the client manager.
 
         This method stores the configuration details for a new client identified by the
@@ -111,6 +122,9 @@ class OpenAIWrapper(object):
 
     def load_clients(self):
         """
+        读 self.client_conf_path 指向的 YAML，把每条配置的 host/port 规范化成 http://host:port/v1（OpenAI 兼容服务的版本路径）后写回 self.client_conf。
+        注意：本方法只改配置字典，OpenAI 客户端实例由 __init__ 末尾的循环创建，因此运行时单独调用它不会补建 client 键。
+
         Loads client configuration from a YAML file and updates the 'host' field
         for each client entry, ensuring the correct URL format.
 
@@ -156,6 +170,10 @@ class OpenAIWrapper(object):
         **kwargs: t.Any,
     ):
         """
+        按 client_id 取客户端拼消息并请求：顺序为 system → history 原样展开 → user（多模态分块或纯文本）→ 末条 assistant 预答（assis_info），
+        有 tools 时带上 tool_choice（默认 auto）让模型自行决定是否函数调用（function calling）；response_model 非空时先用 instructor 包装客户端以解析结构化输出。
+        Returns: 底层 chat.completions.create 的原生响应对象；stream=True 为分块迭代器，False 为完整响应。
+
         Generates a response from a chat model based on the given prompt and additional context.
 
         Args:
@@ -176,10 +194,12 @@ class OpenAIWrapper(object):
             Response: The response object from the chat model.
         """
         if not model:
+            # 模型名缺省取该 client_id 配置里的 model
             model = self.client_conf[client_id]['model']
 
         client = self.client_conf[client_id]['client']
         if response_model:
+            # 结构化输出（structured output）：instructor 仍走同一套 OpenAI 协议接口，只负责把回包解析成 response_model 对象
             import instructor #TODO 有些模型支持这个 instructor 的结构化输出，但实际上它调用的还是openai api的功能，以后适时删除或补全
             client = instructor.from_openai(client)
 

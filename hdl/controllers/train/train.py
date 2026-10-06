@@ -3,7 +3,7 @@
 # 文件：hdl/controllers/train/train.py
 # 说明：训练流程与 Trainer 实现
 # 模块功能：分子图回归模型（模型由外部环境提供）的脚本式训练入口：用 PyG DataLoader 按 8:2 切分训练/测试数据，逐批做前向、算均方根误差（RMSE）、反向传播，固定跑 2000 轮（epoch）后用 seaborn 画损失曲线
-# 说明：本文件不是可导入模块，model、data 等名字都依赖外部命名空间，也没有参数解析、日志与检查点（checkpoint）保存逻辑
+# 备注：本文件不是可导入模块，model、data 等名字都依赖外部命名空间，也没有参数解析、日志与检查点（checkpoint）保存逻辑
 from torch_geometric.data import DataLoader
 # 导入并全局屏蔽告警，避免训练脚本被 warning 刷屏
 import warnings

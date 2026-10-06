@@ -501,8 +501,7 @@ def mol_without_indices(
                 bond.GetBondType() 
             ) 
         ) 
-    # 建一个空的可写分子（RWMol），把保留下来的原子和键逐个重放上去
-    # 空的可写分子（RWMol）：保留下来的原子按顺序重放，索引随之重排
+    # 空的可写分子（RWMol）：保留下来的原子按顺序重放，键随后按新索引重建
     mol = Chem.RWMol(Chem.Mol()) 
      
     new_idx = 0 
@@ -521,6 +520,7 @@ def mol_without_indices(
             mol.AddAtom(atom) 
             idx_map[atom_index] = new_idx 
             new_idx += 1 
+    # 重建键：只有两端原子都被保留的键才加回来，并把索引换成重排后的新索引
     for bond_info in bond_list: 
         if ( 
             bond_info[0] not in remove_indices 
@@ -532,6 +532,7 @@ def mol_without_indices(
                 bond_info[2] 
             ) 
         else: 
+            # 一端被删、一端保留：这根键无法保留，先记下保留端的原子索引
             one_in = False 
             if ( 
                 (bond_info[0] in remove_indices) 
@@ -548,6 +549,7 @@ def mol_without_indices(
                 # remove_index = bond_info[1] 
                 one_in = True 
             if one_in:  
+                # 保留端是氮时把显式氢数（explicit H）加 1，抵掉随被删原子一起消失的那根键
                 if atom_list[keep_index][0] == 'N': 
                     old_num_explicit_Hs = mol.GetAtomWithIdx( 
                         idx_map[keep_index] 
@@ -556,6 +558,7 @@ def mol_without_indices(
                     mol.GetAtomWithIdx(idx_map[keep_index]).SetNumExplicitHs( 
                         old_num_explicit_Hs + 1 
                     ) 
+    # 从可写的 RWMol 转回不可变 Chem.Mol 输出
     mol = Chem.Mol(mol) 
     return mol
 
@@ -567,14 +570,27 @@ def draw_mols_surfs(
     surface=True,
     surface_opacity=0.5
 ):
+    """把一批分子叠进同一个 py3Dmol 三维视图渲染，可选再叠加溶剂可及表面（solvent accessible surface, SAS）。
+
+    Args:
+        mols: Chem.Mol 列表，需带三维坐标（各分子按自身坐标叠在同一场景，便于比较构象/对接姿态）。
+        width / height: 画布像素尺寸。
+        surface: 是否叠加分子表面。
+        surface_opacity: 表面不透明度（0-1 浮点，作为 opacity 传给 addSurface）。
+
+    Returns:
+        视图 show() 的返回值（Notebook 中内联渲染）。
+    """
     import py3Dmol
 
     view = py3Dmol.view(width=width, height=height)
     view.setBackgroundColor('0xeeeeee')
     view.removeAllModels()
     for mol in mols:
+        # 用 RDKit 内置的 addMolToView 把分子逐帧写进视图，所有模型共享一个视图坐标系
         addMolToView(mol, view)
     if surface:
+        # 表面是对整个场景一次性计算的，py3Dmol.SAS 即溶剂可及表面
         view.addSurface(
             py3Dmol.SAS,
             {'opacity': surface_opacity}
@@ -587,7 +603,15 @@ def draw_rxn(
     rxn_smiles,
     use_smiles: bool = True,
 ):
+    """把反应式（reaction）画成长条图片并直接在 Notebook 里 display。
+
+    Args:
+        rxn_smiles (str): 反应式字符串，形如 "A.B>C>D"。
+        use_smiles (bool): True 把各侧当 SMILES 具体分子解析，False 当 SMARTS 子结构模板解析
+            （两者都交给 AllChem.ReactionFromSmarts 的 useSmiles 开关）。
+    """
     rxn = AllChem.ReactionFromSmarts(rxn_smiles, useSmiles=use_smiles)
+    # 2000x500 的 Cairo 光栅画布，够铺开反应物箭头产物；highlightByReactant 让产物继承来源反应物的颜色
     d2d = Draw.MolDraw2DCairo(2000, 500)
     d2d.DrawReaction(rxn, highlightByReactant=True)
     png = d2d.GetDrawingText()
@@ -595,10 +619,21 @@ def draw_rxn(
 
 
 def react(rxn_smarts, reagents):
+    """用反应 SMARTS 模板对反应物跑一次反应模拟。
+
+    Args:
+        rxn_smarts (str): 反应 SMARTS，形如 "A.B>>C"。
+        reagents (list[str]): 反应物 SMILES 列表，顺序需与模板的反应物槽位一一对应。
+
+    Returns:
+        list[tuple[Chem.Mol, ...]]：RunReactants 的产物组（每组为一次原子映射得到的产物分子）；
+        解析或反应异常时打印异常并返回空列表。
+    """
     try:
         rxn = AllChem.ReactionFromSmarts(rxn_smarts)
         # n_reactants = rxn.GetNumReactantTemplates()
         products = rxn.RunReactants([
+            # 模板槽位是 Mol，故先把 SMILES 逐个解析
             Chem.MolFromSmiles(smi) for smi in reagents
         ])
         return products
@@ -608,6 +643,7 @@ def react(rxn_smarts, reagents):
 
 
 def match_pattern(mol, patt):
+    """空值安全的子结构匹配：mol 为 None（SMILES 解析失败）时返回 False，否则返回 HasSubstructMatch 的布尔结果。"""
     if mol:
         return mol.HasSubstructMatch(patt)
     else:
@@ -615,6 +651,9 @@ def match_pattern(mol, patt):
 
 
 def split_rxn_smiles(smi):
+    """按两个 '>' 把反应 SMILES 拆成 "反应物>试剂>产物"，返回 (反应物串, 产物串)。
+    中段试剂/催化剂非空时用 '.' 并进反应物串（即不区分反应物与试剂）；
+    '>' 数量不是恰好两个时解包失败，打印异常并返回 ('', '')。"""
     try:
         reagents1, reagents2, products = smi.split('>')
         if len(reagents2) > 0:
@@ -628,7 +667,17 @@ def split_rxn_smiles(smi):
 
 
 def find_mprod(rxn_smi):
+    """在成酰胺（amide）反应里反查产物来自哪一对反应物：从反应 SMILES 中筛出羧酸与胺，
+    穷举两者组合用 SMARTS 模板算出理论产物，再按 InChIKey 与实际产物比对。
+
+    Args:
+        rxn_smi (str): "反应物>试剂>产物" 形式的反应 SMILES。
+
+    Returns:
+        tuple | None：首个命中返回 (羧酸 SMILES, 胺 SMILES, 产物 SMILES)，全部不匹配时返回 None。
+    """
     # ref: https://github.com/LiamWilbraham/uspto-analysis/blob/master/reaction-stats-uspto.ipynb
+    # 模板固定为 羧酸 + 胺 -> 酰胺：[C:1](=[O:2])-[OD1] 与 [N!H0:3] 成键，写死的反应中心映射号 1/2/3
     rxn_smarts = '[C:1](=[O:2])-[OD1].[N!H0:3]>>[C:1](=[O:2])[N:3]'
     patt_acid = Chem.MolFromSmarts('[CX3](=O)[OX2H1]')
     patt_amine = Chem.MolFromSmarts('[N;H3,H2,H1]')  # ammonia or primary/secondary amine
@@ -642,6 +691,7 @@ def find_mprod(rxn_smi):
         if match_pattern(Chem.MolFromSmiles(r), patt_acid)
     ]
     
+    # 去掉 '@'（立体化学标记），比较时把反应物与产物都当作无手性版本
     cooh = [re.sub('@', '', i) for i in cooh]
     
     amine = [
@@ -650,6 +700,7 @@ def find_mprod(rxn_smi):
     ]
     amine = [re.sub('@', '', i) for i in amine]
 
+    # 酸 x 胺 的笛卡尔积逐个试反应，p_1[0] 取该次映射的首个产物分子
     for perm in itertools.product(cooh, amine):
         
         cooh_i = perm[0]
@@ -661,15 +712,23 @@ def find_mprod(rxn_smi):
             for p_2 in products:
                 p_2 = re.sub('@', '', p_2)
                 patt = Chem.MolFromSmiles(p_2)  
+                # InChIKey 相同即认为理论产物就是实际产物，据此锁定这一对反应物
                 if Chem.MolToInchiKey(p_1[0]) == Chem.MolToInchiKey(patt):  
                     return cooh_i, amine_i, p_2
     return None
 
 
 def get_largest_mol(smiles, to_smiles=False):
+    """从可能含多个片段（盐、溶剂、共结晶物）的 SMILES 里取原子数最多的主片段。
+
+    Args:
+        smiles (str): 输入 SMILES，解析失败时返回 None。
+        to_smiles (bool): True 返回经 molvs.standardize_smiles 标准化的 SMILES 字符串，False 返回 Chem.Mol。
+    """
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return
+    # asMols=True 得到按片段拆开的独立分子，default=mol 只在无片段时兜底
     mol_frags = rdmolops.GetMolFrags(mol, asMols=True)
     largest_mol = max(mol_frags, default=mol, key=lambda m: m.GetNumAtoms())
     if to_smiles:
@@ -678,6 +737,15 @@ def get_largest_mol(smiles, to_smiles=False):
 
 
 def standardize_tautomer(mol, max_tautomers=1000):
+    """互变异构体（tautomer）规范化：用 rdMolStandardize 的 TautomerEnumerator 把分子统一到规范的互变异构写法。
+
+    Args:
+        mol (Chem.Mol): 输入分子。
+        max_tautomers (int): 枚举上限（CleanupParameters.maxTautomers），限制候选互变异构体数量以防组合爆炸。
+
+    Returns:
+        Chem.Mol：规范化后的互变异构体。
+    """
     params = rdMolStandardize.CleanupParameters()
     params.maxTautomers = max_tautomers
     enumerator = rdMolStandardize.TautomerEnumerator(params)
@@ -686,12 +754,21 @@ def standardize_tautomer(mol, max_tautomers=1000):
 
 
 def reorder_tautomers(m):
+    """列出分子的全部互变异构体（tautomer）并把规范化写法排在首位。
+
+    Args:
+        m (Chem.Mol): 输入分子。
+
+    Returns:
+        list[Chem.Mol]：首项为 Canonicalize 结果，其余为枚举出且 SMILES 不同于首项的异构体，按 SMILES 字符串升序。
+    """
     enumerator = rdMolStandardize.TautomerEnumerator()
     canon = enumerator.Canonicalize(m)
     csmi = Chem.MolToSmiles(canon)
     res = [canon]
     tauts = enumerator.Enumerate(m)
     smis = [Chem.MolToSmiles(x) for x in tauts]
+    # Enumerate 的列表里含规范化体本身，按 SMILES 相等过滤掉以免首项重复；元组比较即以 SMILES 字符串为排序键
     stpl = sorted(
         (x, y) for x, y in zip(smis, tauts) if x!=csmi
     )

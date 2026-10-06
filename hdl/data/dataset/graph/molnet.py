@@ -2,6 +2,7 @@
 # 邮箱：j.hu@pku.edu.cn
 # 文件：hdl/data/dataset/graph/molnet.py
 # 说明：分子数据集构建与切分
+# 模块功能：MoleculeNet 基准数据集的本地读取实现：把 CSV 中的 SMILES 预处理为分子图（molecular graph），collate 后缓存到 processed.pt 再加载。
 # import os
 import copy
 import os.path as osp
@@ -26,6 +27,7 @@ except ImportError:
 from jupyfuncs.show.pbar import tqdm
 
 
+# 原子特征类别取值表（OGB 风格）：原子特征即各类别在本表中的下标
 x_map = {
     'atomic_num':
     list(range(0, 119)),
@@ -57,6 +59,7 @@ x_map = {
     'is_in_ring': [False, True],
 }
 
+# 键特征类别取值表：键特征即各类别在本表中的下标
 e_map = {
     'bond_type': [
         'misc',
@@ -77,6 +80,7 @@ e_map = {
 }
 
 
+# MoleculeNet 基准集合的本地实现，继承 torch.utils.data.Dataset；下列英文 docstring 为原始说明
 class MoleculeNet(torch.utils.data.Dataset):
     r"""The `MoleculeNet <http://moleculenet.ai/datasets-1>`_ benchmark
     collection  from the `"MoleculeNet: A Benchmark for Molecular Machine
@@ -107,6 +111,10 @@ class MoleculeNet(torch.utils.data.Dataset):
     def __init__(self, root, file_type='smi_in_csv', 
                  transform=None, pre_transform=None,
                  pre_filter=None):
+        """实例化即调用 process() 生成缓存，再 torch.load 读入 data/slices。
+        root 参数当前未使用，缓存路径固定为 'processed.pt'；file_type 参数被忽略，
+        属性统一写死为 'smi_in_csv'；transform/pre_transform/pre_filter 为预处理钩子。
+        """
 
         self.file_type = 'smi_in_csv'
 
@@ -129,20 +137,25 @@ class MoleculeNet(torch.utils.data.Dataset):
         self.data, self.slices = torch.load(self.processed_file)
 
     def process(self):
+        """解析首个原始文件并构建全部分子图，collate 后写入 processed.pt 缓存。"""
         with open(self.raw_paths[0], 'r') as f:
             dataset = f.read().split('\n')[1:-1]
             dataset = [x for x in dataset if len(x) > 0]  # Filter empty lines.
 
         data_list = []
         for line in tqdm(dataset):
+            # 先删除引号包裹的字符串字段再按逗号切分，避免字段内逗号干扰列对齐
             line = re.sub(r'\".*\"', '', line)  # Replace ".*" strings.
             line = line.split(',')
 
+            # SMILES 与标签列的位置取自类属性 names[self.name] 的第 4、5 项（由子类配置）
             smiles = line[self.names[self.name][3]]
             ys = line[self.names[self.name][4]]
             ys = ys if isinstance(ys, list) else [ys]
 
+            # 空字段记为 NaN 表示该任务标签缺失
             ys = [float(y) if len(y) > 0 else float('NaN') for y in ys]
+            # 多任务标签（multi-task labels）张量，形状 (1, 标签数)
             y = torch.tensor(ys, dtype=torch.float).view(1, -1)
 
             mol = Chem.MolFromSmiles(smiles)

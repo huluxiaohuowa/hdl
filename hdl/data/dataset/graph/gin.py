@@ -202,6 +202,8 @@ class MoleculeDataset(Dataset):
 
 
 class MoleculeDatasetWrapper(object):
+    """数据集加载器封装（非 Dataset）：持有数据路径与批大小等配置，
+    构建 MoleculeDataset 并产出训练/验证或测试的 torch_geometric DataLoader。"""
     def __init__(
         self,
         batch_size,
@@ -222,11 +224,13 @@ class MoleculeDatasetWrapper(object):
         self.y_col_name = y_col_name
 
     def get_data_loaders(self):
+        # 仅传 data_path 建数据集（其余配置走默认值），再随机切分训练/验证加载器
         train_dataset = MoleculeDataset(data_path=self.data_path)
         train_loader, valid_loader = self.get_train_validation_data_loaders(train_dataset)
         return train_loader, valid_loader
     
     def get_test_loader(self, shuffle=False):
+        # 用完整列名配置构建测试数据集并组批
         test_dataset = MoleculeDataset(
             data_path=self.data_path,
             file_type=self.file_type,
@@ -240,6 +244,8 @@ class MoleculeDatasetWrapper(object):
         return test_loader
 
     def get_train_validation_data_loaders(self, train_dataset):
+        """随机打乱全部索引，按 valid_size 比例切出验证集，其余为训练集，
+        各用 SubsetRandomSampler 组批（drop_last 丢弃末尾不完整批）。"""
         # obtain training indices that will be used for validation
         num_train = len(train_dataset)
         indices = list(range(num_train))
@@ -265,6 +271,7 @@ class MoleculeDatasetWrapper(object):
         test_dataset,
         shuffle=False
     ):
+        """按 batch_size 对测试集组批，drop_last=False 保留末尾不完整批。"""
         # num_test = len(test_dataset)
         # indices = list(range(num_test))
         test_loader = DataLoader(

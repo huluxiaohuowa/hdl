@@ -18,9 +18,9 @@ class BEEmbedder():
         batch_size: int = 16,
         max_length: int = 1024,
     ) -> None:
-        """按 emb_name 中的 "bge"/"bce" 关键字加载对应嵌入模型（权重目录为 emb_dir），编码参数暂存到实例属性。
+        """Initializes the object with the specified embedding name and directory.
+        按 emb_name 中的 "bge"/"bce" 关键字加载对应嵌入模型（权重目录为 emb_dir），编码参数暂存到实例属性。
         注意 max_length 只作为形参存在、未赋给 self.max_length；device 只写进 model_kwargs，未传给模型构造函数。
-        Initializes the object with the specified embedding name and directory.
         
         Args:
             emb_name (str): The name of the embedding. Defaults to "bge".

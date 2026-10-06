@@ -159,9 +159,11 @@ class MoleculeNet(torch.utils.data.Dataset):
             y = torch.tensor(ys, dtype=torch.float).view(1, -1)
 
             mol = Chem.MolFromSmiles(smiles)
+            # SMILES 解析失败的样本跳过
             if mol is None:
                 continue
 
+            # 每个原子按 x_map 的 9 类特征取类别下标，行对齐为 (原子数, 9)
             xs = []
             for atom in mol.GetAtoms():
                 x = []
@@ -180,6 +182,7 @@ class MoleculeNet(torch.utils.data.Dataset):
 
             x = torch.tensor(xs, dtype=torch.long).view(-1, 9)
 
+            # 每条化学键展开为正反两条有向边，共享同一份 3 维键特征
             edge_indices, edge_attrs = [], []
             for bond in mol.GetBonds():
                 i = bond.GetBeginAtomIdx()
@@ -198,13 +201,16 @@ class MoleculeNet(torch.utils.data.Dataset):
             edge_attr = torch.tensor(edge_attrs, dtype=torch.long).view(-1, 3)
 
             # Sort indices.
+            # 以 源原子*原子数+目标原子 为键排序，使边索引按源原子升序
             if edge_index.numel() > 0:
                 perm = (edge_index[0] * x.size(0) + edge_index[1]).argsort()
                 edge_index, edge_attr = edge_index[:, perm], edge_attr[perm]
 
+            # 单个分子图样本，附带原始 SMILES 字符串便于溯源
             data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y,
                         smiles=smiles)
 
+            # pre_filter 决定样本是否保留，pre_transform 在存盘前改写样本
             if self.pre_filter is not None and not self.pre_filter(data):
                 continue
 
@@ -213,11 +219,13 @@ class MoleculeNet(torch.utils.data.Dataset):
 
             data_list.append(data)
 
+        # 合并全部样本为 (data, slices) 后落盘缓存，实现一次处理、多次加载
         torch.save(
             self.collate(data_list),
             self.processed_file
         )
 
+    # 把 Data 列表拼接为 (data, slices) 存储格式：slices 记录各键按样本的切片偏移
     def collate(data_list: List[Data]) -> Tuple[Data, Dict[str, Tensor]]:
         r"""Collates a python list of data objects to the internal storage
         format of :class:`torch_geometric.data.InMemoryDataset`."""
@@ -242,6 +250,7 @@ class MoleculeNet(torch.utils.data.Dataset):
         return 'MoleculeNet ({})'.format(len(self))
     
     def copy(self, idx: Optional[IndexType] = None):
+        """浅拷贝出新数据集；给定 idx 时只物化选中样本并重新 collate。"""
         if idx is None:
             data_list = [self.get(i) for i in range(len(self))]
         else:
@@ -253,6 +262,7 @@ class MoleculeNet(torch.utils.data.Dataset):
         dataset.data, dataset.slices = self.collate(data_list)
         return dataset
 
+    # 由 y 推断类别数：整型一维标签取最大值加 1，浮点一维取唯一值数，二维标签取末维长度
     @property
     def num_classes(self) -> int:
         r"""The number of classes in the dataset."""
@@ -267,11 +277,13 @@ class MoleculeNet(torch.utils.data.Dataset):
             return self.data.y.size(-1)
 
     def len(self) -> int:
+        """样本数：取任一键 slices 列表的长度减 1。"""
         for item in self.slices.values():
             return len(item) - 1
         return 0
 
     def get(self, idx: int) -> Data:
+        """按 slices 偏移从合并张量中切出第 idx 个样本；_data_list 缓存命中时返回其拷贝。"""
         if hasattr(self, '_data_list'):
             if self._data_list is None:
                 self._data_list = self.len() * [None]
@@ -308,6 +320,7 @@ class MoleculeNet(torch.utils.data.Dataset):
         r"""The number of examples in the dataset."""
         return len(self.indices())
 
+    # 整数索引取单个 Data（必要时套用 transform）；切片/序列索引返回数据集子集
     def __getitem__(
         self,
         idx: Union[int, np.integer, IndexType],
@@ -331,6 +344,7 @@ class MoleculeNet(torch.utils.data.Dataset):
             return self.index_select(idx)
 
     def index_select(self, idx: IndexType) -> 'Dataset':
+        """按切片、整型/布尔张量或 ndarray 索引挑选样本，返回记录 _indices 视图的浅拷贝。"""
         indices = self.indices()
 
         if isinstance(idx, slice):
@@ -363,6 +377,7 @@ class MoleculeNet(torch.utils.data.Dataset):
         dataset._indices = indices
         return dataset
 
+    # 随机打乱样本顺序；return_perm 为真时连同置换张量一起返回
     def shuffle(
         self,
         return_perm: bool = False,

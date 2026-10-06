@@ -199,7 +199,7 @@ class OpenAIWrapper(object):
 
         client = self.client_conf[client_id]['client']
         if response_model:
-            # 结构化输出（structured output）：instructor 仍走同一套 OpenAI 协议接口，只负责把回包解析成 response_model 对象
+            # 结构化输出（structured output）：只把客户端包成 instructor 客户端，response_model 本身未传给 create，故仍按原样返回响应
             import instructor #TODO 有些模型支持这个 instructor 的结构化输出，但实际上它调用的还是openai api的功能，以后适时删除或补全
             client = instructor.from_openai(client)
 
@@ -212,6 +212,7 @@ class OpenAIWrapper(object):
             })
 
         if history:
+            # 多轮上下文：调用方给的 role/content 字典列表原样接在 system 之后，本函数不做裁剪或 token 计数
             messages.extend(history)
             # history 需要符合以下格式，其中system不是必须
             # history = [

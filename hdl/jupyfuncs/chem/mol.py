@@ -302,7 +302,8 @@ def do_decomp(mols, cores, options):
     decomp = RGroupDecomposition(cores, options)
     for mol in mols:
         decomp.Add(mol)
-    decomp.Process()  # 统一做骨架匹配与 R 基团切分
+    # 统一做骨架匹配与 R 基团切分，之后才能取行/列视图
+    decomp.Process()
     return decomp
 
 
@@ -345,14 +346,14 @@ def get_ids_folds(id_list, num_folds, need_shuffle=False):
     """把 id 列表切成 k 折，返回每折的 (训练 id, 验证 id) 组合（交叉验证用）。
 
     Args:
-        id_list: id 序列；need_shuffle 为真时会被就地打乱（原地修改传入列表）。
+        id_list: id 序列（need_shuffle 为真时会被就地打乱，即原地修改传入列表）。
         num_folds: 折数 k，要求 len(id_list) >= k，否则断言失败。
         need_shuffle: 是否先随机打乱再分折。
 
     Returns:
         list[tuple[list, list]]：长度 k，第 i 项为 (其余折合并的训练 id, 第 i 折验证 id)。
-        每折大小固定为 int(N/k)，且最后一折的右边界被截到 N-1，
-        因此 N 不能被 k 整除时末尾若干 id 不会进入任何一折。
+        每折大小固定为 int(N/k)，且最后一折右边界被截到 N-1，
+        所以 N 不能被 k 整除时末尾若干 id 不会进入任何一折。
     """
     if need_shuffle:
         from random import shuffle
